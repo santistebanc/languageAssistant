@@ -3,20 +3,37 @@ import {View, StyleSheet, TextInput, ScrollView} from 'react-native';
 import {RuuiProvider} from 'react-universal-ui';
 import searchService from './search';
 import TranslationsList from './components/TranslationsList';
-import SimilarList from './components/SimilarList';
-import SuggestionsList from './components/SuggestionsList';
-import {translationsDeu, similarDeu, suggestionsDeu} from './state';
+// import SimilarList from './components/SimilarList';
+// import SuggestionsList from './components/SuggestionsList';
+import {translationsIndex, languageDetected} from './state';
+import Flag from './components/Flag';
 
 const App = () => {
-  let searchTerm = useRef('');
+  const searchTerm = useRef('');
+  const detectedLanguage = useRef('eng');
   const [inputValue, setInputValue] = useState('');
   const [translations, setTranslations] = useState([]);
-  const [similar, setSimilar] = useState([]);
-  const [suggestions, setSuggestions] = useState([]);
+  const [inputLanguage, setInputLanguage] = useState('eng');
+  // const [similar, setSimilar] = useState([]);
+  // const [suggestions, setSuggestions] = useState([]);
   const [search] = useState(searchService(settings));
+
+  const getInputLanguage = () => inputLanguage;
+
   useEffect(() => {
-    const subscription = translationsDeu.subscribe(index => {
-      const list = index.get(searchTerm.current);
+    const subscription = languageDetected.subscribe(lang => {
+      detectedLanguage.current = lang;
+      setInputLanguage(lang);
+    });
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    const subscription = translationsIndex.subscribe(index => {
+      const langidx = index[detectedLanguage.current] || {};
+      const list = langidx[searchTerm.current];
       if (list) {
         setTranslations([...translations, ...list]);
       }
@@ -26,29 +43,29 @@ const App = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const subscription = similarDeu.subscribe(index => {
-      setSimilar([...(index.get(searchTerm.current) || [])]);
-    });
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+  // useEffect(() => {
+  //   const subscription = similarDeu.subscribe(index => {
+  //     setSimilar([...(index.get(searchTerm.current) || [])]);
+  //   });
+  //   return () => {
+  //     subscription.unsubscribe();
+  //   };
+  // }, []);
 
-  useEffect(() => {
-    const subscription = suggestionsDeu.subscribe(index => {
-      setSuggestions([...(index.get(searchTerm.current) || [])]);
-    });
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+  // useEffect(() => {
+  //   const subscription = suggestionsDeu.subscribe(index => {
+  //     setSuggestions([...(index.get(searchTerm.current) || [])]);
+  //   });
+  //   return () => {
+  //     subscription.unsubscribe();
+  //   };
+  // }, []);
 
   const onBlurInput = () => {
     if (inputValue && inputValue !== searchTerm.current) {
       setTranslations([]);
-      setSimilar([]);
-      setSuggestions([]);
+      // setSimilar([]);
+      // setSuggestions([]);
       searchTerm.current = inputValue;
       search.new(inputValue);
     }
@@ -58,16 +75,19 @@ const App = () => {
   };
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.input}
-        onBlur={onBlurInput}
-        value={inputValue}
-        onChangeText={inputChange}
-      />
+      <View style={styles.searchbar}>
+        <TextInput
+          style={styles.input}
+          onBlur={onBlurInput}
+          value={inputValue}
+          onChangeText={inputChange}
+        />
+        <Flag code={inputLanguage} width={40} height={34} style={styles.flag} />
+      </View>
       <ScrollView>
-        <SuggestionsList list={suggestions} />
+        {/* <SuggestionsList list={suggestions} /> */}
         <TranslationsList list={translations} />
-        <SimilarList list={similar} />
+        {/* <SimilarList list={similar} /> */}
       </ScrollView>
     </View>
   );
@@ -84,12 +104,16 @@ function AppContainer(props) {
 export default AppContainer;
 
 const styles = StyleSheet.create({
+  searchbar: {
+    flexDirection: 'row',
+  },
   translation: {
     textAlign: 'center',
     color: '#333333',
     marginBottom: 5,
   },
   input: {
+    flex: 1,
     fontSize: 18,
     borderWidth: 1,
     borderColor: '#d6d7da',

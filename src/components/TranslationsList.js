@@ -6,8 +6,8 @@ const TranslationsList = ({list}) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>TRANSLATIONS</Text>
-      {list.map(item => (
-        <View key={item.text} style={styles.item}>
+      {list.map((item, i) => (
+        <View key={i} style={styles.item}>
           <Flag code={item.lang} width={16} height={12} style={styles.flag} />
           <Text style={styles.result}>{item.text}</Text>
         </View>

@@ -1,20 +1,28 @@
 import {Platform} from 'react-native';
 import translate, {setCORS} from './fetchSources/googleTranslate';
 import cheerio from 'cheerio-without-node-native';
-import {addTranslation, addSimilar, addSuggestion} from './state';
+import {
+  addTranslation,
+  addSimilar,
+  addSuggestion,
+  detectLanguage,
+} from './state';
+import without from 'lodash/without';
 
-const reverso = async (text, lang) => {
+const LANGUAGES = ['eng', 'deu', 'esp'];
+
+const reverso = async (text, from, to) => {
   const corsprefix =
     Platform.OS === 'web' ? 'http://cors-anywhere.herokuapp.com/' : '';
 
-  const language = {eng: 'english', deu: 'german', esp: 'spanish'}[lang];
+  const mappingLang = lang =>
+    ({eng: 'english', deu: 'german', esp: 'spanish'}[lang]);
 
   const searchUrl =
     corsprefix +
-    `https://context.reverso.net/translation/german-${language}/${text.replace(
-      ' ',
-      '+',
-    )}`;
+    `https://context.reverso.net/translation/${mappingLang(from)}-${mappingLang(
+      to,
+    )}/${text.replace(' ', '+')}`;
   try {
     const response = await fetch(searchUrl);
     const htmlString = await response.text();
@@ -24,7 +32,7 @@ const reverso = async (text, lang) => {
       addSuggestion({
         original: text,
         suggestion: searchQuery,
-        lang: 'deu',
+        lang: from,
         source: 'reverso',
       });
     }
@@ -35,7 +43,7 @@ const reverso = async (text, lang) => {
           .text()
           .trim();
         addTranslation({
-          terms: {deu: searchQuery, [lang]: trans},
+          terms: {[from]: searchQuery, [to]: trans},
           source: 'reverso',
         });
       });
@@ -44,7 +52,7 @@ const reverso = async (text, lang) => {
       addSimilar({
         original: searchQuery,
         similar,
-        lang: 'deu',
+        lang: from,
         source: 'reverso',
       });
     });
@@ -55,7 +63,7 @@ const reverso = async (text, lang) => {
       addSimilar({
         original: searchQuery,
         similar,
-        lang: 'deu',
+        lang: from,
         source: 'reverso',
       });
       $(this)
@@ -63,7 +71,7 @@ const reverso = async (text, lang) => {
         .each(function() {
           const trans = $(this).text();
           addTranslation({
-            terms: {deu: similar, [lang]: trans},
+            terms: {[from]: similar, [to]: trans},
             source: 'reverso',
           });
         });
@@ -73,35 +81,49 @@ const reverso = async (text, lang) => {
   }
 };
 
-const googleTranslate = async (text, lang) => {
+const googleTranslate = async (text, from, to) => {
   const trans =
     Platform.OS === 'web'
       ? setCORS('http://cors-anywhere.herokuapp.com/')
       : translate;
 
-  return trans(text, {from: 'de', to: lang})
+  const langMapping = l => ({deu: 'de', eng: 'en', esp: 'es'}[l]);
+
+  return trans(text, {from: langMapping(from), to: langMapping(to)})
     .then(res => {
-      const langCode = {de: 'deu', en: 'eng', es: 'esp'}[lang];
-      if (res.from.text.value) {
-        const correct = res.from.text.value.replace('[', '').replace(']', '');
-        addSuggestion({
-          original: text,
-          suggestion: correct,
-          lang: langCode,
-          source: 'googleTranslate',
-        });
-        if (res.from.text.autoCorrected) {
-          addTranslation({
-            terms: {deu: correct, [langCode]: res.text},
+      if (from !== to) {
+        if (res.from.text.value) {
+          const correct = res.from.text.value.replace('[', '').replace(']', '');
+          addSuggestion({
+            original: text,
+            suggestion: correct,
+            lang: to,
             source: 'googleTranslate',
           });
         }
-      } else {
         addTranslation({
-          terms: {deu: text, [langCode]: res.text},
+          terms: {[from]: text, [to]: res.text},
           source: 'googleTranslate',
         });
       }
+    })
+    .catch(err => {
+      console.error(err);
+    });
+};
+
+const googleDetectLanguage = async text => {
+  const trans =
+    Platform.OS === 'web'
+      ? setCORS('http://cors-anywhere.herokuapp.com/')
+      : translate;
+
+  return trans(text, {from: 'auto', to: 'en'})
+    .then(res => {
+      const langMapping = l => ({de: 'deu', en: 'eng', es: 'esp'}[l]);
+      const detectedLang = langMapping(res.from.language.iso);
+      detectLanguage(detectedLang);
+      return detectedLang;
     })
     .catch(err => {
       console.error(err);
@@ -115,10 +137,13 @@ const searchService = settings => {
 };
 
 const startSearch = (text, settings) => {
-  googleTranslate(text, 'en');
-  googleTranslate(text, 'es');
-  reverso(text, 'eng');
-  reverso(text, 'esp');
+  googleDetectLanguage(text).then(from => {
+    const langs = without(LANGUAGES, from);
+    langs.forEach(to => {
+      googleTranslate(text, from, to);
+      reverso(text, from, to);
+    });
+  });
 };
 
 export default searchService;
