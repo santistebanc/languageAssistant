@@ -8,7 +8,7 @@
     "start": "react-native start",
     "test": "jest",
     "lint": "eslint .",
-    "proxy": "lcp --proxyUrl 192.168.178.20"
+    "deploy": "gh-pages-deploy"
   },
   "dependencies": {
     "cheerio-without-node-native": "0.20.2",
@@ -51,5 +51,8 @@
   },
   "jest": {
     "preset": "react-native"
+  },
+  "gh-pages-deploy": {
+    "staticpath": "ruui"
   }
 }
