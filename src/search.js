@@ -2,21 +2,22 @@ import {Platform} from 'react-native';
 import translate, {setCORS} from './fetchSources/googleTranslate';
 import cheerio from 'cheerio-without-node-native';
 import {
-  addTranslation,
+  // addTranslation,
   addSimilar,
   addSuggestion,
   detectLanguage,
 } from './state';
+import {addTranslation} from './store';
 import without from 'lodash/without';
 
-const LANGUAGES = ['eng', 'deu', 'esp'];
+const LANGUAGES = ['en', 'de', 'es'];
 
 const reverso = async (text, from, to) => {
   const corsprefix =
-    Platform.OS === 'web' ? 'http://cors-anywhere.herokuapp.com/' : '';
+    Platform.OS === 'web' ? 'https://cors.x7.workers.dev/' : '';
 
   const mappingLang = lang =>
-    ({eng: 'english', deu: 'german', esp: 'spanish'}[lang]);
+    ({en: 'english', de: 'german', es: 'spanish'}[lang]);
 
   const searchUrl =
     corsprefix +
@@ -36,6 +37,7 @@ const reverso = async (text, from, to) => {
         source: 'reverso',
       });
     }
+    console.log('.......reverso', htmlString);
     $('#translations-content>a.translation')
       .slice(1)
       .each(function(i, el) {
@@ -83,13 +85,9 @@ const reverso = async (text, from, to) => {
 
 const googleTranslate = async (text, from, to) => {
   const trans =
-    Platform.OS === 'web'
-      ? setCORS('http://cors-anywhere.herokuapp.com/')
-      : translate;
+    Platform.OS === 'web' ? setCORS('https://cors.x7.workers.dev/') : translate;
 
-  const langMapping = l => ({deu: 'de', eng: 'en', esp: 'es'}[l]);
-
-  return trans(text, {from: langMapping(from), to: langMapping(to)})
+  return trans(text, {from, to})
     .then(res => {
       if (from !== to) {
         if (res.from.text.value) {
@@ -114,14 +112,11 @@ const googleTranslate = async (text, from, to) => {
 
 const googleDetectLanguage = async text => {
   const trans =
-    Platform.OS === 'web'
-      ? setCORS('http://cors-anywhere.herokuapp.com/')
-      : translate;
+    Platform.OS === 'web' ? setCORS('https://cors.x7.workers.dev/') : translate;
 
   return trans(text, {from: 'auto', to: 'en'})
     .then(res => {
-      const langMapping = l => ({de: 'deu', en: 'eng', es: 'esp'}[l]);
-      const detectedLang = langMapping(res.from.language.iso);
+      const detectedLang = res.from.language.iso;
       detectLanguage(detectedLang);
       return detectedLang;
     })

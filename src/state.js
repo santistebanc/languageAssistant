@@ -1,33 +1,44 @@
 import {Subject} from 'rxjs';
 import without from 'lodash/without';
-import updateWith from 'lodash/updateWith';
-import get from 'lodash/get';
-// import mergeWith from 'lodash/mergeWith';
-// import isArray from 'lodash/isArray';
+// import updateWith from 'lodash/updateWith';
+import set from 'lodash/set';
+// import get from 'lodash/get';
+import mergeWith from 'lodash/mergeWith';
+import isArray from 'lodash/isArray';
+import unionWith from 'lodash/unionWith';
+import isEqual from 'lodash/isEqual';
 
 const translationsSubject = new Subject();
 const similarSubject = new Subject();
 const suggestionsSubject = new Subject();
 const detectedLanguageSubject = new Subject();
 
-const traverse = (obj, path, fallback, customizer) => {
-  updateWith(obj, path, (n = fallback) => n, customizer);
-  return get(obj, path);
-};
+// const traverse = (obj, path, fallback, customizer) => {
+//   updateWith(obj, path, (n = fallback) => n, customizer);
+//   return get(obj, path);
+// };
 
 export const translations = () => {
-  let index = {};
+  const index = {};
   const subject = new Subject();
   translationsSubject.asObservable().subscribe(({terms, source}) => {
     const langs = Object.keys(terms);
     langs.forEach(from => {
       without(langs, from).forEach(to => {
-        const list = traverse(index, [from, terms[from]], []);
-        list.push({
-          text: terms[to],
-          lang: to,
-          source,
-        });
+        const toMerge = set(
+          {},
+          [from, terms[from]],
+          [
+            {
+              text: terms[to],
+              lang: to,
+              sources: [source],
+            },
+          ],
+        );
+        mergeWith(index, toMerge, (a, b) =>
+          isArray(a) ? unionWith(a, b, isEqual) : undefined,
+        );
       });
     });
     subject.next(index);

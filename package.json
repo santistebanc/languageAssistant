@@ -7,10 +7,12 @@
     "ios": "react-native run-ios",
     "start": "react-native start",
     "test": "jest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "proxy": "lcp --proxyUrl 192.168.178.20"
   },
   "dependencies": {
     "cheerio-without-node-native": "0.20.2",
+    "express": "^4.17.1",
     "google-translate-api-browser": "^1.1.71",
     "lodash": "^4.17.15",
     "querystring": "^0.2.0",
@@ -21,6 +23,7 @@
     "react-native-axios": "^0.17.1",
     "react-native-web": "^0.12.2",
     "react-universal-ui": "1.0.49",
+    "request": "^2.88.2",
     "rxjs": "^6.5.4"
   },
   "devDependencies": {

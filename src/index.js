@@ -5,25 +5,34 @@ import searchService from './search';
 import TranslationsList from './components/TranslationsList';
 // import SimilarList from './components/SimilarList';
 // import SuggestionsList from './components/SuggestionsList';
-import {translationsIndex, languageDetected} from './state';
+import {languageDetected} from './state';
+import {translationsByText} from './store';
 import Flag from './components/Flag';
 
 const App = () => {
   const searchTerm = useRef('');
-  const detectedLanguage = useRef('eng');
+  const detectedLanguage = useRef();
   const [inputValue, setInputValue] = useState('');
   const [translations, setTranslations] = useState([]);
-  const [inputLanguage, setInputLanguage] = useState('eng');
+  const [inputLanguage, setInputLanguage] = useState();
   // const [similar, setSimilar] = useState([]);
   // const [suggestions, setSuggestions] = useState([]);
   const [search] = useState(searchService(settings));
 
-  const getInputLanguage = () => inputLanguage;
+  const outputTranslations = () => {
+    if (detectedLanguage.current && searchTerm.current) {
+      const list =
+        translationsByText.get(detectedLanguage.current, searchTerm.current) ||
+        [];
+      setTranslations(list);
+    }
+  };
 
   useEffect(() => {
     const subscription = languageDetected.subscribe(lang => {
       detectedLanguage.current = lang;
       setInputLanguage(lang);
+      outputTranslations();
     });
     return () => {
       subscription.unsubscribe();
@@ -31,12 +40,8 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    const subscription = translationsIndex.subscribe(index => {
-      const langidx = index[detectedLanguage.current] || {};
-      const list = langidx[searchTerm.current];
-      if (list) {
-        setTranslations([...translations, ...list]);
-      }
+    const subscription = translationsByText.observable().subscribe(() => {
+      outputTranslations();
     });
     return () => {
       subscription.unsubscribe();
@@ -63,10 +68,10 @@ const App = () => {
 
   const onBlurInput = () => {
     if (inputValue && inputValue !== searchTerm.current) {
-      setTranslations([]);
       // setSimilar([]);
       // setSuggestions([]);
       searchTerm.current = inputValue;
+      outputTranslations();
       search.new(inputValue);
     }
   };
@@ -104,6 +109,9 @@ function AppContainer(props) {
 export default AppContainer;
 
 const styles = StyleSheet.create({
+  container: {
+    height: '100%',
+  },
   searchbar: {
     flexDirection: 'row',
   },
