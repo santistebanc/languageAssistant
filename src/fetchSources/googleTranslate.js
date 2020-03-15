@@ -1,131 +1,37 @@
-import {stringify} from 'querystring';
-import axios from 'react-native-axios';
-import sM from './sM';
-import {isSupported, getCode} from './languages';
-function token(text) {
-  return new Promise(resolve => {
-    resolve({name: 'tk', value: sM(text)});
-  });
-}
-let CORSService = '';
-// setup your own cors-anywhere server
-export const setCORS = CORSURL => {
-  CORSService = CORSURL;
-  return translate;
-};
-// function translate(text: string, to: string, from: string, tld: string) {
-export function translate(text, opts_ = {}) {
-  const opts = {
-    from: opts_.from || 'auto',
-    to: opts_.to || 'en',
-    hl: opts_.hl || 'en',
-    raw: opts_.raw || false,
-    tld: opts_.tld || 'com',
-  };
-  let e = null;
-  [opts.from, opts.to].forEach(lang => {
-    if (lang && !isSupported(lang)) {
-      e = new Error();
-      e.message = "The language '" + lang + "' is not supported";
-    }
-  });
-  if (e) {
-    return new Promise((resolve, reject) => {
-      reject(e);
-    });
-  }
-  return token(text)
-    .then(tokn => {
-      const url =
-        'https://translate.google.' + opts.tld + '/translate_a/single';
-      const data = {
-        client: 'gtx',
-        sl: getCode(opts.from),
-        tl: getCode(opts.to),
-        hl: getCode(opts.hl),
-        dt: ['at', 'bd', 'ex', 'ld', 'md', 'qca', 'rw', 'rm', 'ss', 't'],
-        ie: 'UTF-8',
-        oe: 'UTF-8',
-        otf: 1,
-        ssel: 0,
-        tsel: 0,
-        kc: 7,
-        q: text,
-        [tokn.name]: tokn.value,
-      };
-      var fullUrl = url + '?' + stringify(data);
-      /*
-          if (fullUrl.length > 2083) {
-              delete data.q;
-              return [
-                  url + '?' + stringify(data),
-                  {method: 'POST', body: {q: text}}
-              ];
-          }
-          */
-      return fullUrl;
-    })
-    .then(url => {
-      return axios
-        .get(CORSService + url)
-        .then(res_ => {
-          console.log(CORSService + url);
-          const res = {
-            body: JSON.stringify(res_.data),
-          };
-          const result = {
-            text: '',
-            pronunciation: '',
-            from: {
-              language: {
-                didYouMean: false,
-                iso: '',
-              },
-              text: {
-                autoCorrected: false,
-                value: '',
-                didYouMean: false,
-              },
-            },
-            raw: opts.raw ? res.body : '',
-          };
-          const body = JSON.parse(res.body);
-          body[0].forEach(obj => {
-            if (obj[0]) {
-              result.text += obj[0];
-            } else if (obj[2]) {
-              result.pronunciation += obj[2];
-            }
-          });
-          if (body[2] === body[8][0][0]) {
-            result.from.language.iso = body[2];
-          } else {
-            result.from.language.didYouMean = true;
-            result.from.language.iso = body[8][0][0];
-          }
-          if (body[7] && body[7][0]) {
-            let str = body[7][0];
-            str = str.replace(/<b><i>/g, '[');
-            str = str.replace(/<\/i><\/b>/g, ']');
-            result.from.text.value = str;
-            if (body[7][5] === true) {
-              result.from.text.autoCorrected = true;
-            } else {
-              result.from.text.didYouMean = true;
-            }
-          }
-          return result;
-        })
-        .catch(err => {
-          console.log(err, CORSService + url);
-          const e = new Error();
-          if (err.statusCode !== undefined && err.statusCode !== 200) {
-            e.message = 'BAD_REQUEST';
-          } else {
-            e.message = 'BAD_NETWORK';
-          }
-          throw e;
+import {Platform} from 'react-native';
+import translate from './utils/translate';
+import {Translations} from '../store2';
+
+const CORSService = Platform.OS === 'web' && 'https://cors.x7.workers.dev/';
+
+export const googleTranslate = async (text, from, to) => {
+  return translate(text, {from, to}, CORSService)
+    .then(res => {
+      if (from !== to) {
+        if (res.from.text.value) {
+          //   const correct = res.from.text.value.replace('[', '').replace(']', '');
+          //   addSuggestion({
+          //     original: text,
+          //     suggestion: correct,
+          //     lang: to,
+          //     source: 'googleTranslate',
+          //   });
+        }
+        Translations.add({
+          terms: {[from]: text, [to]: res.text},
+          source: 'googleTranslate',
         });
+      }
+    })
+    .catch(err => {
+      console.error(err);
     });
-}
-export default translate;
+};
+
+export const gtDetectLanguage = async text => {
+  return translate(text, {from: 'auto', to: 'en'}, CORSService)
+    .then(res => res.from.language.iso)
+    .catch(err => {
+      console.error(err);
+    });
+};

@@ -1,78 +1,21 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState} from 'react';
 import {View, StyleSheet, TextInput, ScrollView} from 'react-native';
 import {RuuiProvider} from 'react-universal-ui';
-import searchService from './search';
+import Search from './search';
 import TranslationsList from './components/TranslationsList';
 // import SimilarList from './components/SimilarList';
 // import SuggestionsList from './components/SuggestionsList';
-import {languageDetected} from './state';
-import {translationsByText} from './store';
 import Flag from './components/Flag';
+import {observer} from 'mobx-react';
 
-const App = () => {
-  const searchTerm = useRef('');
-  const detectedLanguage = useRef();
+const App = observer(({service}) => {
   const [inputValue, setInputValue] = useState('');
-  const [translations, setTranslations] = useState([]);
-  const [inputLanguage, setInputLanguage] = useState();
   // const [similar, setSimilar] = useState([]);
   // const [suggestions, setSuggestions] = useState([]);
-  const [search] = useState(searchService(settings));
-
-  const outputTranslations = () => {
-    if (detectedLanguage.current && searchTerm.current) {
-      const list =
-        translationsByText.get(detectedLanguage.current, searchTerm.current) ||
-        [];
-      setTranslations(list);
-    }
-  };
-
-  useEffect(() => {
-    const subscription = languageDetected.subscribe(lang => {
-      detectedLanguage.current = lang;
-      setInputLanguage(lang);
-      outputTranslations();
-    });
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    const subscription = translationsByText.observable().subscribe(() => {
-      outputTranslations();
-    });
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  // useEffect(() => {
-  //   const subscription = similarDeu.subscribe(index => {
-  //     setSimilar([...(index.get(searchTerm.current) || [])]);
-  //   });
-  //   return () => {
-  //     subscription.unsubscribe();
-  //   };
-  // }, []);
-
-  // useEffect(() => {
-  //   const subscription = suggestionsDeu.subscribe(index => {
-  //     setSuggestions([...(index.get(searchTerm.current) || [])]);
-  //   });
-  //   return () => {
-  //     subscription.unsubscribe();
-  //   };
-  // }, []);
 
   const onBlurInput = () => {
-    if (inputValue && inputValue !== searchTerm.current) {
-      // setSimilar([]);
-      // setSuggestions([]);
-      searchTerm.current = inputValue;
-      outputTranslations();
-      search.new(inputValue);
+    if (inputValue) {
+      service.search(inputValue);
     }
   };
   const inputChange = text => {
@@ -87,21 +30,26 @@ const App = () => {
           value={inputValue}
           onChangeText={inputChange}
         />
-        <Flag code={inputLanguage} width={40} height={34} style={styles.flag} />
+        <Flag
+          code={service.detectedLang}
+          width={40}
+          height={34}
+          style={styles.flag}
+        />
       </View>
       <ScrollView>
         {/* <SuggestionsList list={suggestions} /> */}
-        <TranslationsList list={translations} />
+        <TranslationsList list={service.translations} />
         {/* <SimilarList list={similar} /> */}
       </ScrollView>
     </View>
   );
-};
+});
 
 function AppContainer(props) {
   return (
     <RuuiProvider>
-      <App />
+      <App service={Search} />
     </RuuiProvider>
   );
 }
@@ -133,16 +81,3 @@ const styles = StyleSheet.create({
     minWidth: 200,
   },
 });
-
-const settings = {
-  entries: [
-    {
-      title: 'Google Translate ENG',
-      id: 'gt_deu_eng',
-    },
-    {
-      title: 'Google Translate ESP',
-      id: 'gt_deu_esp',
-    },
-  ],
-};
