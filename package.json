@@ -8,7 +8,8 @@
     "start": "react-native start",
     "test": "jest",
     "lint": "eslint .",
-    "deploy": "gh-pages-deploy"
+    "deploy": "gh-pages-deploy",
+    "package-electron": "electron-packager ./electron"
   },
   "dependencies": {
     "cheerio-without-node-native": "0.20.2",
