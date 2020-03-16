@@ -1,5 +1,11 @@
 import {Platform} from 'react-native';
-import {Translations, Suggestions, SimilarTerms} from '../store';
+import {
+  Translations,
+  Suggestions,
+  SimilarTerms,
+  ExamplePhrases,
+  PhraseTranslations,
+} from '../store';
 import cheerio from 'cheerio-without-node-native';
 import {Index} from '../utils';
 
@@ -71,6 +77,36 @@ export const reverso = async (text, from, to) => {
             source: 'reverso',
           });
         });
+    });
+    $('#examples-content>.example').each(function() {
+      const phrase = $(this)
+        .find('.src>.text')
+        .text()
+        .trim();
+      const phraseTranslated = $(this)
+        .find('.trg>.text')
+        .text()
+        .trim();
+      const termTranslated = $(this)
+        .find('.trg>.text>a')
+        .text()
+        .trim();
+      ExamplePhrases.add({
+        termText: searchQuery,
+        phraseText: phrase,
+        lang: from,
+        source: 'reverso',
+      });
+      ExamplePhrases.add({
+        termText: termTranslated,
+        phraseText: phraseTranslated,
+        lang: to,
+        source: 'reverso',
+      });
+      PhraseTranslations.add({
+        phrases: {[from]: phrase, [to]: phraseTranslated},
+        source: 'reverso',
+      });
     });
     cache.set([text, from, to], Date.now());
   } catch (err) {

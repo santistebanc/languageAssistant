@@ -1,22 +1,20 @@
 import React from 'react';
 import {View, StyleSheet, Text} from 'react-native';
-import Flag from './Flag';
 
-const TranslationsList = ({list}) => {
+const PhrasesList = ({list}) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>TRANSLATIONS</Text>
-      {list.map((item, i) => (
-        <View key={i} style={styles.item}>
-          <Flag code={item.lang} width={16} height={12} style={styles.flag} />
-          <Text style={styles.result}>{item.text}</Text>
-        </View>
+      <Text style={styles.title}>EXAMPLES</Text>
+      {list.map(item => (
+        <Text style={styles.result} key={item.text}>
+          {item.text}
+        </Text>
       ))}
     </View>
   );
 };
 
-export default TranslationsList;
+export default PhrasesList;
 
 const styles = StyleSheet.create({
   title: {
@@ -35,6 +33,7 @@ const styles = StyleSheet.create({
   result: {
     fontSize: 16,
     paddingLeft: 4,
+    marginBottom: 10,
   },
   container: {
     paddingBottom: 4,

@@ -5,6 +5,7 @@ import Search from './search';
 import TranslationsList from './components/TranslationsList';
 import SimilarList from './components/SimilarList';
 import SuggestionsList from './components/SuggestionsList';
+import PhrasesList from './components/PhrasesList';
 import Flag from './components/Flag';
 import {observer} from 'mobx-react';
 
@@ -38,6 +39,7 @@ const App = observer(({service}) => {
       <ScrollView>
         <SuggestionsList list={service.suggestions} />
         <TranslationsList list={service.translations} />
+        <PhrasesList list={service.examplePhrases} />
         <SimilarList list={service.similarTerms} />
       </ScrollView>
     </View>

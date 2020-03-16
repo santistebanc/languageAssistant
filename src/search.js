@@ -3,7 +3,7 @@ import {
   gtDetectLanguage,
 } from './fetchSources/googleTranslate';
 import {reverso} from './fetchSources/reverso';
-import {Translations, Suggestions, SimilarTerms} from './store';
+import {Translations, Suggestions, SimilarTerms, ExamplePhrases} from './store';
 import without from 'lodash/without';
 import {observable, action} from 'mobx';
 
@@ -24,6 +24,10 @@ const Search = observable(
 
     get similarTerms() {
       return SimilarTerms.byText(this.detectedLang, this.searchTerm);
+    },
+
+    get examplePhrases() {
+      return ExamplePhrases.byText(this.detectedLang, this.searchTerm);
     },
 
     async search(text) {

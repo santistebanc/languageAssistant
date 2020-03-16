@@ -50,11 +50,11 @@ export class Index {
     location.get(last).add(value);
     return value;
   }
-  get(path = []) {
+  get(path = [], fallback) {
     let current = this.store;
     for (const next of path) {
       if (!current.has(next)) {
-        return;
+        return fallback;
       }
       current = current.get(next);
     }
