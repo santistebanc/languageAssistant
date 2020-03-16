@@ -1,10 +1,16 @@
 import {Platform} from 'react-native';
-import {Translations} from '../store2';
+import {Translations, Suggestions, SimilarTerms} from '../store';
 import cheerio from 'cheerio-without-node-native';
+import {Index} from '../utils';
 
 const CORSService = Platform.OS === 'web' ? 'https://cors.x7.workers.dev/' : '';
 
+const cache = new Index();
+
 export const reverso = async (text, from, to) => {
+  if (cache.has([text, from, to])) {
+    return;
+  }
   const mappingLang = lang =>
     ({en: 'english', de: 'german', es: 'spanish'}[lang]);
 
@@ -19,12 +25,12 @@ export const reverso = async (text, from, to) => {
     const $ = cheerio.load(htmlString);
     const searchQuery = $('#entry').val();
     if (searchQuery !== text) {
-      //   addSuggestion({
-      //     original: text,
-      //     suggestion: searchQuery,
-      //     lang: from,
-      //     source: 'reverso',
-      //   });
+      Suggestions.add({
+        original: text,
+        suggestion: searchQuery,
+        from,
+        source: 'reverso',
+      });
     }
     $('#translations-content>a.translation')
       .slice(1)
@@ -38,24 +44,24 @@ export const reverso = async (text, from, to) => {
         });
       });
     $('#seealso-content>a').each(function() {
-      //   const similar = $(this).text();
-      //   addSimilar({
-      //     original: searchQuery,
-      //     similar,
-      //     lang: from,
-      //     source: 'reverso',
-      //   });
+      const similar = $(this).text();
+      SimilarTerms.add({
+        original: searchQuery,
+        similar,
+        from,
+        source: 'reverso',
+      });
     });
     $('#splitting-content>.split.wide-container').each(function() {
       const similar = $(this)
         .find('a.src')
         .text();
-      //   addSimilar({
-      //     original: searchQuery,
-      //     similar,
-      //     lang: from,
-      //     source: 'reverso',
-      //   });
+      SimilarTerms.add({
+        original: searchQuery,
+        similar,
+        from,
+        source: 'reverso',
+      });
       $(this)
         .find('.trgs>a.translation')
         .each(function() {
@@ -66,6 +72,7 @@ export const reverso = async (text, from, to) => {
           });
         });
     });
+    cache.set([text, from, to], Date.now());
   } catch (err) {
     console.error(err);
   }

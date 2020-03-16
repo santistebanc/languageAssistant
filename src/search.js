@@ -3,7 +3,7 @@ import {
   gtDetectLanguage,
 } from './fetchSources/googleTranslate';
 import {reverso} from './fetchSources/reverso';
-import {Translations} from './store2';
+import {Translations, Suggestions, SimilarTerms} from './store';
 import without from 'lodash/without';
 import {observable, action} from 'mobx';
 
@@ -11,31 +11,29 @@ const LANGUAGES = ['en', 'de', 'es'];
 
 const Search = observable(
   {
-    // observable properties:
-    results: new Set(),
     detectedLang: '',
     searchTerm: '',
 
-    // computed property:
     get translations() {
       return Translations.byText(this.detectedLang, this.searchTerm);
     },
 
-    search(text) {
-      this.searchTerm = text;
-      if (this.results.has(text)) {
-        return;
-      } else {
-        this.results.add(text);
-      }
+    get suggestions() {
+      return Suggestions.byText(this.detectedLang, this.searchTerm);
+    },
 
-      gtDetectLanguage(text).then(from => {
-        this.detectedLang = from;
-        const langs = without(LANGUAGES, from);
-        langs.forEach(to => {
-          googleTranslate(text, from, to);
-          reverso(text, from, to);
-        });
+    get similarTerms() {
+      return SimilarTerms.byText(this.detectedLang, this.searchTerm);
+    },
+
+    async search(text) {
+      this.searchTerm = text;
+      const from = await gtDetectLanguage(text);
+      this.detectedLang = from;
+      const langs = without(LANGUAGES, from);
+      langs.forEach(to => {
+        googleTranslate(text, from, to);
+        reverso(text, from, to);
       });
     },
   },

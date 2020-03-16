@@ -3,15 +3,13 @@ import {View, StyleSheet, TextInput, ScrollView} from 'react-native';
 import {RuuiProvider} from 'react-universal-ui';
 import Search from './search';
 import TranslationsList from './components/TranslationsList';
-// import SimilarList from './components/SimilarList';
-// import SuggestionsList from './components/SuggestionsList';
+import SimilarList from './components/SimilarList';
+import SuggestionsList from './components/SuggestionsList';
 import Flag from './components/Flag';
 import {observer} from 'mobx-react';
 
 const App = observer(({service}) => {
   const [inputValue, setInputValue] = useState('');
-  // const [similar, setSimilar] = useState([]);
-  // const [suggestions, setSuggestions] = useState([]);
 
   const onBlurInput = () => {
     if (inputValue) {
@@ -38,9 +36,9 @@ const App = observer(({service}) => {
         />
       </View>
       <ScrollView>
-        {/* <SuggestionsList list={suggestions} /> */}
+        <SuggestionsList list={service.suggestions} />
         <TranslationsList list={service.translations} />
-        {/* <SimilarList list={similar} /> */}
+        <SimilarList list={service.similarTerms} />
       </ScrollView>
     </View>
   );

@@ -6,31 +6,49 @@ export const toObject = (map = new Map(), func) =>
       map.entries(),
       func ||
         (([k, v]) => {
-          const val = v instanceof Map ? toObject(v) : v;
+          const vv = v.toJS ? v.toJS() : v;
+          const val = vv instanceof Map ? toObject(vv) : vv;
+          const kk = k.toJS ? k.toJS() : k;
           const key =
-            k instanceof Map
-              ? toObject(k)
-              : typeof k === 'object'
-              ? JSON.stringify(k)
-              : k;
+            kk instanceof Map
+              ? toObject(kk)
+              : typeof kk === 'object'
+              ? JSON.stringify(kk)
+              : kk;
           return [key, val];
         }),
     ),
   );
 
+const traverse = (map, path = []) => {
+  let current = map;
+  path.slice(0, -1).forEach(loc => {
+    if (!current.has(loc)) {
+      current.set(loc, new Map());
+    }
+    current = current.get(loc);
+  });
+  return current;
+};
+
 export class Index {
   @observable store = new Map();
-  @action index(path = [], value) {
-    return path.reduce((current, next, i) => {
-      if (!current.has(next)) {
-        const payload = i === path.length - 1 ? value : new Map();
-        current.set(next, payload);
-        if (i === path.length - 1 && typeof value === 'undefined') {
-          return next;
-        }
-      }
-      return current.get(next);
-    }, this.store);
+  @action set(path = [], value) {
+    const last = path[path.length - 1];
+    const location = traverse(this.store, path);
+    if (!location.has(last)) {
+      location.set(last, value);
+    }
+    return location.get(last);
+  }
+  @action add(path = [], value) {
+    const last = path[path.length - 1];
+    const location = traverse(this.store, path);
+    if (!location.has(last)) {
+      location.set(last, new Set());
+    }
+    location.get(last).add(value);
+    return value;
   }
   get(path = []) {
     let current = this.store;
@@ -40,7 +58,13 @@ export class Index {
       }
       current = current.get(next);
     }
+    if (current.toJS && current.toJS() instanceof Set) {
+      return Array.from(current);
+    }
     return current;
+  }
+  has(path = []) {
+    return typeof this.get(path) !== 'undefined';
   }
   print(path = []) {
     return toObject(this.get(path));
