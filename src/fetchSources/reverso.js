@@ -7,7 +7,8 @@ import {
   addSuggestion,
   addSimilarTerm,
   addExamplePhrasePair,
-} from '../store';
+  addFrequencyScore,
+} from '../actions';
 
 const CORSService = Platform.OS === 'web' ? 'https://cors.x7.workers.dev/' : '';
 
@@ -54,7 +55,7 @@ export const reverso = async (text, from, to) => {
             source,
           });
           const freq = $(this).attr('data-freq');
-          toTerm.addFrequencyScore({freq, weight: 5, source});
+          addFrequencyScore({target: toTerm, freq, weight: 5});
         });
       $('#seealso-content>a').each(function() {
         const similar = $(this).text();

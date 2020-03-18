@@ -2,7 +2,7 @@ import {Platform} from 'react-native';
 import translate from './utils/translate';
 import {Index} from '../utils';
 import {transaction} from 'mobx';
-import {addTranslationPair, addSuggestion} from '../store';
+import {addTranslationPair, addSuggestion} from '../actions';
 
 const CORSService = Platform.OS === 'web' && 'https://cors.x7.workers.dev/';
 

@@ -7,9 +7,9 @@ import {reverso} from './fetchSources/reverso';
 import {
   getAllTranslations,
   getAllPhraseExamples,
-  getAllSuggestions,
+  getAllSuggestionTerms,
   getAllSimilarTerms,
-} from './store';
+} from './actions';
 import without from 'lodash/without';
 import {observable, action} from 'mobx';
 
@@ -28,7 +28,7 @@ const Search = observable(
     },
 
     get suggestions() {
-      return getAllSuggestions({
+      return getAllSuggestionTerms({
         lang: this.detectedLang,
         text: this.searchTerm,
       });

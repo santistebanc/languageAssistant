@@ -8,7 +8,6 @@ import SuggestionsList from './components/SuggestionsList';
 import PhrasesList from './components/PhrasesList';
 import Flag from './components/Flag';
 import {observer} from 'mobx-react';
-import './state2';
 
 const App = observer(({service}) => {
   const [inputValue, setInputValue] = useState('');

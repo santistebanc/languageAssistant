@@ -37,7 +37,13 @@ const Term = {
       actions: {
         add: 'addFrequencyScore',
       },
-      hide: true,
+    },
+    examplePhrases: {
+      model: 'ExamplePhrase',
+      type: 'array',
+      actions: {
+        add: 'addExamplePhrase',
+      },
     },
   },
   actions: {
@@ -51,6 +57,30 @@ const Term = {
           (av, score, i, arr) => av + score.freq / arr.length,
           0,
         );
+      },
+    },
+  },
+};
+
+const Phrase = {
+  primary: ['text', 'lang'],
+  actions: {
+    create: 'createPhrase',
+    get: 'getPhrase',
+  },
+  derived: {
+    sources: {
+      model: 'Source',
+      type: 'array',
+      actions: {
+        add: 'addSource',
+      },
+    },
+    translations: {
+      model: 'PhraseTranslation',
+      type: 'array',
+      actions: {
+        add: 'addTranslation',
       },
     },
   },
@@ -112,9 +142,10 @@ const FrequencyScore = {
   },
 };
 
-const definitions = {
+const config = {
   models: {
     Term,
+    Phrase,
     Source,
     Translation,
     PhraseTranslation,
@@ -124,36 +155,4 @@ const definitions = {
     FrequencyScore,
   },
 };
-
-const {
-  Term: {createTerm, getTerm},
-  Source: {createSource},
-} = generateState(definitions);
-
-console.log('generated!!');
-
-const t = createTerm({text: 'yoyo', lang: 'en'});
-t.addSource({name: 'example'});
-t.addSource({name: 'example'});
-t.addSource({name: 'example3'});
-t.addFrequencyScore({
-  freq: 100,
-  weight: 5,
-  source: createSource({target: t, name: 'example'}),
-});
-t.addFrequencyScore({
-  freq: 200,
-  weight: 5,
-  source: createSource({target: t, name: 'example3'}),
-});
-t.addFrequencyScore({
-  freq: 500,
-  weight: 5,
-  source: createSource({target: t, name: 'example2'}),
-});
-t.addTranslation({term: createTerm({text: 'wakawaka', lang: 'de'})});
-t.addTranslation({term: createTerm({text: 'wakawaka', lang: 'en'})});
-console.log(t.freq);
-createSource({target: t, name: 'example2'});
-
-// console.log('----------', getTerm({text: 'yoyo', lang: 'en'}));
+export default generateState(config);

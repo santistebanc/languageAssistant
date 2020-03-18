@@ -60,7 +60,6 @@ export default function generate(defs) {
         const primaryFields = Object.values(pick(params, model.primary));
         const res = index.print(primaryFields, fallback);
         const level = model.primary.length - primaryFields.length;
-        console.log('level', level);
         if (level === 1) {
           return Object.values(res);
         } else if (level > 1) {
@@ -81,13 +80,12 @@ export default function generate(defs) {
       ];
     }),
   );
-  return Object.fromEntries(
-    Object.entries(defs.models).map(([name, model]) => [
-      name,
-      {
-        [model.actions.create]: this.actions[name].createAction,
-        [model.actions.get]: this.actions[name].getAction,
-      },
-    ]),
+  return Object.entries(defs.models).reduce(
+    (res, [name, model]) => ({
+      ...res,
+      [model.actions.create]: this.actions[name].createAction,
+      [model.actions.get]: this.actions[name].getAction,
+    }),
+    {},
   );
 }
