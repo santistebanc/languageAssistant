@@ -7,7 +7,8 @@ export const toObject = (map = new Map(), func) =>
       func ||
         (([k, v]) => {
           const vv = v.toJS ? v.toJS() : v;
-          const val = vv instanceof Map ? toObject(vv) : vv;
+          const val =
+            vv instanceof Map ? toObject(vv) : vv instanceof Set ? [...vv] : vv;
           const kk = k.toJS ? k.toJS() : k;
           const key =
             kk instanceof Map

@@ -8,6 +8,7 @@ import SuggestionsList from './components/SuggestionsList';
 import PhrasesList from './components/PhrasesList';
 import Flag from './components/Flag';
 import {observer} from 'mobx-react';
+// import './state';
 
 const App = observer(({service}) => {
   const [inputValue, setInputValue] = useState('');
@@ -39,8 +40,11 @@ const App = observer(({service}) => {
       <ScrollView>
         <SuggestionsList list={service.suggestions} />
         <TranslationsList list={service.translations} />
-        <PhrasesList list={service.examplePhrases} />
         <SimilarList list={service.similarTerms} />
+        <PhrasesList
+          list={service.examplePhrases}
+          searchTerm={service.searchTerm}
+        />
       </ScrollView>
     </View>
   );

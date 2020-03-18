@@ -1,13 +1,13 @@
 import {Platform} from 'react-native';
-import {
-  Translations,
-  Suggestions,
-  SimilarTerms,
-  ExamplePhrases,
-  PhraseTranslations,
-} from '../store';
 import cheerio from 'cheerio-without-node-native';
 import {Index} from '../utils';
+import {transaction} from 'mobx';
+import {
+  addTranslationPair,
+  addSuggestion,
+  addSimilarTerm,
+  addExamplePhrasePair,
+} from '../store';
 
 const CORSService = Platform.OS === 'web' ? 'https://cors.x7.workers.dev/' : '';
 
@@ -30,85 +30,112 @@ export const reverso = async (text, from, to) => {
     const htmlString = await response.text();
     const $ = cheerio.load(htmlString);
     const searchQuery = $('#entry').val();
-    if (searchQuery !== text) {
-      Suggestions.add({
-        original: text,
-        suggestion: searchQuery,
-        from,
-        source: 'reverso',
+    transaction(() => {
+      const source = {name: 'reverso', action: 'searchFetch'};
+      if (searchQuery !== text) {
+        addSuggestion({
+          original: text,
+          suggestion: searchQuery,
+          lang: from,
+          source,
+        });
+      }
+      $('#translations-content>a.translation')
+        .slice(1)
+        .each(function(i, el) {
+          const trans = $(this)
+            .text()
+            .trim();
+          const {toTerm} = addTranslationPair({
+            from,
+            to,
+            original: searchQuery,
+            translated: trans,
+            source,
+          });
+          const freq = $(this).attr('data-freq');
+          toTerm.addFrequencyScore({freq, weight: 5, source});
+        });
+      $('#seealso-content>a').each(function() {
+        const similar = $(this).text();
+        addSimilarTerm({
+          original: searchQuery,
+          similar,
+          lang: from,
+          source,
+        });
       });
-    }
-    $('#translations-content>a.translation')
-      .slice(1)
-      .each(function(i, el) {
-        const trans = $(this)
+      $('#splitting-content>.split.wide-container').each(function() {
+        const similar = $(this)
+          .find('a.src')
+          .text();
+        addSimilarTerm({
+          original: searchQuery,
+          similar,
+          lang: from,
+          source,
+        });
+        $(this)
+          .find('.trgs>a.translation')
+          .each(function() {
+            const trans = $(this).text();
+            addTranslationPair({
+              from,
+              to,
+              original: similar,
+              translated: trans,
+              source,
+            });
+          });
+      });
+      $('#examples-content>.example').each(function() {
+        const phraseOriginal = $(this)
+          .find('.src>.text')
           .text()
           .trim();
-        Translations.add({
-          terms: {[from]: searchQuery, [to]: trans},
-          source: 'reverso',
-        });
-      });
-    $('#seealso-content>a').each(function() {
-      const similar = $(this).text();
-      SimilarTerms.add({
-        original: searchQuery,
-        similar,
-        from,
-        source: 'reverso',
-      });
-    });
-    $('#splitting-content>.split.wide-container').each(function() {
-      const similar = $(this)
-        .find('a.src')
-        .text();
-      SimilarTerms.add({
-        original: searchQuery,
-        similar,
-        from,
-        source: 'reverso',
-      });
-      $(this)
-        .find('.trgs>a.translation')
-        .each(function() {
-          const trans = $(this).text();
-          Translations.add({
-            terms: {[from]: similar, [to]: trans},
-            source: 'reverso',
+        const highlightOriginal = $(this)
+          .find('.src>.text em')
+          .map(function() {
+            return $(this)
+              .text()
+              .trim();
+          })
+          .get();
+        const termTextOriginal = highlightOriginal.join(' ... ');
+        if (termTextOriginal !== searchQuery) {
+          addSimilarTerm({
+            original: searchQuery,
+            similar: termTextOriginal,
+            lang: from,
+            source,
           });
+        }
+        const phraseTranslated = $(this)
+          .find('.trg>.text')
+          .text()
+          .trim();
+        const highlightTranslated = $(this)
+          .find('.trg>.text em')
+          .map(function() {
+            return $(this)
+              .text()
+              .trim();
+          })
+          .get();
+        //TODO: solve issue with repeated words like 'mein'
+        const termTextTranslated = highlightTranslated.join(' ... ');
+        addExamplePhrasePair({
+          from,
+          to,
+          originalTerm: termTextOriginal,
+          translatedTerm: termTextTranslated,
+          originalPhrase: phraseOriginal,
+          translatedPhrase: phraseTranslated,
+          source,
         });
+      });
+      cache.set([text, from, to], Date.now());
     });
-    $('#examples-content>.example').each(function() {
-      const phrase = $(this)
-        .find('.src>.text')
-        .text()
-        .trim();
-      const phraseTranslated = $(this)
-        .find('.trg>.text')
-        .text()
-        .trim();
-      const termTranslated = $(this)
-        .find('.trg>.text>a')
-        .text()
-        .trim();
-      ExamplePhrases.add({
-        termText: searchQuery,
-        phraseText: phrase,
-        lang: from,
-        source: 'reverso',
-      });
-      ExamplePhrases.add({
-        termText: termTranslated,
-        phraseText: phraseTranslated,
-        lang: to,
-        source: 'reverso',
-      });
-      PhraseTranslations.add({
-        phrases: {[from]: phrase, [to]: phraseTranslated},
-        source: 'reverso',
-      });
-    });
-    cache.set([text, from, to], Date.now());
   } catch (err) {
     console.error(err);
   }

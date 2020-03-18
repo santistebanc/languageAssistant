@@ -1,13 +1,28 @@
 import React from 'react';
 import {View, StyleSheet, Text} from 'react-native';
 
-const PhrasesList = ({list}) => {
+const getHighlightedText = (text, highlight) => {
+  const parts = text.split(new RegExp(`(${highlight})`, 'gi'));
+  return parts.map((part, i) =>
+    part.toLowerCase() === highlight.toLowerCase() ? (
+      <Text style={styles.highlight} key={i}>
+        {part}
+      </Text>
+    ) : (
+      <Text style={styles.context} key={i}>
+        {part}
+      </Text>
+    ),
+  );
+};
+
+const PhrasesList = ({list, searchTerm}) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>EXAMPLES</Text>
-      {list.map(item => (
-        <Text style={styles.result} key={item.text}>
-          {item.text}
+      {list.map((item, i) => (
+        <Text key={i} style={styles.result}>
+          {item.text && searchTerm && getHighlightedText(item.text, searchTerm)}
         </Text>
       ))}
     </View>
@@ -34,6 +49,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingLeft: 4,
     marginBottom: 10,
+    flexDirection: 'row',
+  },
+  context: {
+    fontSize: 16,
+    textAlign: 'left',
+  },
+  highlight: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    textAlign: 'left',
   },
   container: {
     paddingBottom: 4,

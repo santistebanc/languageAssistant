@@ -5,8 +5,8 @@ const SuggestionsList = ({list}) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>SUGGESTIONS</Text>
-      {list.map(item => (
-        <Text style={styles.result} key={item.text}>
+      {list.map((item, i) => (
+        <Text style={styles.result} key={i}>
           {item.text}
         </Text>
       ))}

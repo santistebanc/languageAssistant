@@ -1,8 +1,9 @@
 import React from 'react';
 import {View, StyleSheet, Text} from 'react-native';
 import Flag from './Flag';
+import {observer} from 'mobx-react';
 
-const TranslationsList = ({list}) => {
+const TranslationsList = observer(({list}) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>TRANSLATIONS</Text>
@@ -14,7 +15,7 @@ const TranslationsList = ({list}) => {
       ))}
     </View>
   );
-};
+});
 
 export default TranslationsList;
 

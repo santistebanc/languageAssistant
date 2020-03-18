@@ -25,6 +25,7 @@
     "react-dom": "^16.13.0",
     "react-native": "0.61.5",
     "react-native-axios": "^0.17.1",
+    "react-native-highlight-words": "^1.0.1",
     "react-native-web": "^0.12.2",
     "react-universal-ui": "1.0.49",
     "request": "^2.88.2",

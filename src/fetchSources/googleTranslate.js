@@ -1,7 +1,8 @@
 import {Platform} from 'react-native';
 import translate from './utils/translate';
-import {Translations, Suggestions} from '../store';
 import {Index} from '../utils';
+import {transaction} from 'mobx';
+import {addTranslationPair, addSuggestion} from '../store';
 
 const CORSService = Platform.OS === 'web' && 'https://cors.x7.workers.dev/';
 
@@ -9,22 +10,28 @@ const cacheTrans = new Index();
 const cacheLang = new Map();
 
 const addTranslation = ({res, text, from, to}) => {
-  if (from !== to) {
-    if (res.from.text.value) {
-      const correct = res.from.text.value.replace('[', '').replace(']', '');
-      Suggestions.add({
-        original: text,
-        suggestion: correct,
+  transaction(async () => {
+    const source = {name: 'googleTranslate', action: 'searchFetch'};
+    if (from !== to) {
+      if (res.from.text.value) {
+        const correct = res.from.text.value.replace('[', '').replace(']', '');
+        addSuggestion({
+          original: text,
+          suggestion: correct,
+          lang: from,
+          source,
+        });
+      }
+      addTranslationPair({
         from,
-        source: 'googleTranslate',
+        to,
+        original: text,
+        translated: res.text,
+        source,
       });
+      cacheTrans.set([text, from, to], Date.now());
     }
-    Translations.add({
-      terms: {[from]: text, [to]: res.text},
-      source: 'googleTranslate',
-    });
-    cacheTrans.set([text, from, to], Date.now());
-  }
+  });
 };
 
 export const googleTranslate = async (text, from, to) => {

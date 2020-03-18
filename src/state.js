@@ -1,130 +1,83 @@
-import {Subject} from 'rxjs';
-import without from 'lodash/without';
-// import updateWith from 'lodash/updateWith';
-import set from 'lodash/set';
-// import get from 'lodash/get';
-import mergeWith from 'lodash/mergeWith';
-import isArray from 'lodash/isArray';
-import unionWith from 'lodash/unionWith';
-import isEqual from 'lodash/isEqual';
+import {Index} from './utils';
+import {pickBy} from 'lodash';
 
-const translationsSubject = new Subject();
-const similarSubject = new Subject();
-const suggestionsSubject = new Subject();
-const detectedLanguageSubject = new Subject();
-
-// const traverse = (obj, path, fallback, customizer) => {
-//   updateWith(obj, path, (n = fallback) => n, customizer);
-//   return get(obj, path);
-// };
-
-export const translations = () => {
-  const index = {};
-  const subject = new Subject();
-  translationsSubject.asObservable().subscribe(({terms, source}) => {
-    const langs = Object.keys(terms);
-    langs.forEach(from => {
-      without(langs, from).forEach(to => {
-        const toMerge = set(
-          {},
-          [from, terms[from]],
-          [
-            {
-              text: terms[to],
-              lang: to,
-              sources: [source],
-            },
-          ],
-        );
-        mergeWith(index, toMerge, (a, b) =>
-          isArray(a) ? unionWith(a, b, isEqual) : undefined,
-        );
+const model = ({fields, type}) => {
+  const index = new Index();
+  const arrayFields = pickBy(fields, v => v.type === 'array');
+  function construct(args) {
+    const instance = {...args};
+    Object.entries(arrayFields).forEach(([k, v]) => {
+      console.log('inside', k, v);
+      const modelInArray = typeof v.model === 'function' ? v.model() : v.model;
+      instance[v.add || 'add_to_' + k] = function(params) {
+        return modelInArray.createAction({...params, target: this});
+      };
+      Object.defineProperty(instance, k, {
+        get: function() {
+          return Array.from(modelInArray.index.get([this], new Set()));
+        },
       });
     });
-    subject.next(index);
-  });
-  return subject.asObservable();
+    //set in index
+    if (type === 'attached') {
+      return index.add([args.target], instance);
+    } else {
+      const primaryFields = pickBy(args, (v, k) => fields[k] === 'primary');
+      return index.set(Object.values(primaryFields), instance);
+    }
+  }
+  function createAction(params) {
+    return construct(params);
+  }
+  console.log('here');
+  return {
+    construct,
+    createAction,
+    index,
+  };
 };
 
-export const translationsIndex = translations();
+const termModel = model({
+  type: 'primitive',
+  fields: {
+    lang: 'primary',
+    text: 'primary',
+    sources: {type: 'array', model: () => sourceModel, add: 'addSource'},
+    translations: {
+      type: 'array',
+      model: () => translationModel,
+      add: 'addTranslation',
+    },
+  },
+});
 
-// const similarByTerm = ({lang}) => {
-//   const index = new Map();
-//   const subject = new Subject();
-//   similarSubject
-//     .asObservable()
-//     .subscribe(({original, similar, lang: similarLang, source}) => {
-//       if (similarLang === lang) {
-//         const newSimilar = {
-//           text: similar,
-//           sources: [source],
-//         };
-//         if (!index.has(original)) {
-//           index.set(original, [newSimilar]);
-//         } else {
-//           const simil = index.get(original).find(list => list.text === similar);
-//           if (simil) {
-//             simil.sources.push(source);
-//           } else {
-//             index.get(original).push(newSimilar);
-//           }
-//         }
-//       }
-//       subject.next(index);
-//     });
-//   return subject.asObservable();
-// };
+const sourceModel = model({
+  type: 'attached',
+  fields: {
+    name: 'primary',
+    target: 'target',
+  },
+});
 
-// const suggestionsByTerm = ({lang}) => {
-//   const index = new Map();
-//   const subject = new Subject();
-//   suggestionsSubject
-//     .asObservable()
-//     .subscribe(({original, suggestion, lang: similarLang, source}) => {
-//       if (similarLang === lang) {
-//         const newSuggestion = {
-//           text: suggestion,
-//           sources: [source],
-//         };
-//         if (!index.has(original)) {
-//           index.set(original, [newSuggestion]);
-//         } else {
-//           const simil = index
-//             .get(original)
-//             .find(list => list.text === suggestion);
-//           if (simil) {
-//             simil.sources.push(source);
-//           } else {
-//             index.get(original).push(newSuggestion);
-//           }
-//         }
-//       }
-//       subject.next(index);
-//     });
-//   return subject.asObservable();
-// };
+const translationModel = model({
+  type: 'attached',
+  fields: {
+    target: 'target',
+    term: 'other',
+  },
+});
 
-// export const translationsDeu = translationsByTerm({
-//   from: 'deu',
-//   langs: ['eng', 'esp'],
-// });
-// export const similarDeu = similarByTerm({lang: 'deu'});
-// export const suggestionsDeu = suggestionsByTerm({lang: 'deu'});
+const createTerm = termModel.createAction;
+const createSource = sourceModel.createAction;
+const createTranslation = translationModel.createAction;
 
-export const addTranslation = ({terms, source}) => {
-  translationsSubject.next({terms, source});
-};
+const t = createTerm({text: 'yoyo', lang: 'en'});
+const res = t.addSource({name: 'example'});
+createSource({target: t, name: 'example2'});
 
-export const addSimilar = ({original, similar, lang, source}) => {
-  similarSubject.next({original, similar, lang, source});
-};
+const deu = createTerm({text: 'wakawaka', lang: 'de'});
 
-export const addSuggestion = ({original, suggestion, lang, source}) => {
-  suggestionsSubject.next({original, suggestion, lang, source});
-};
+createTranslation({target: t, term: deu});
 
-export const languageDetected = detectedLanguageSubject.asObservable();
-
-export const detectLanguage = lang => {
-  detectedLanguageSubject.next(lang);
-};
+console.log('----------', res);
+console.log(t);
