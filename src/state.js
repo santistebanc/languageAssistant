@@ -1,38 +1,43 @@
 import {Index} from './utils';
 import {pickBy} from 'lodash';
 
-const model = ({fields, type}) => {
+const model = ({fields, type}) => () => {
   const index = new Index();
+  const getters = {};
+  const setters = {};
   const arrayFields = pickBy(fields, v => v.type === 'array');
-  function construct(args) {
-    const instance = {...args};
-    Object.entries(arrayFields).forEach(([k, v]) => {
-      console.log('inside', k, v);
-      const modelInArray = typeof v.model === 'function' ? v.model() : v.model;
-      instance[v.add || 'add_to_' + k] = function(params) {
-        return modelInArray.createAction({...params, target: this});
-      };
-      Object.defineProperty(instance, k, {
-        get: function() {
-          return Array.from(modelInArray.index.get([this], new Set()));
-        },
-      });
-    });
-    //set in index
+  Object.entries(arrayFields).forEach(([k, v]) => {
+    console.log('k', k, 'v', v, v.model());
+    const modelInArray = typeof v.model === 'function' ? v.model() : v.model;
+    getters[k] = function() {
+      return Array.from(modelInArray.index.get([this], new Set()));
+    };
+    setters[k] = function(ModelClass, params) {
+      return modelInArray.createAction(ModelClass, {...params, target: this});
+    };
+  });
+  function createAction(ModelClass, params) {
+    const instance = new ModelClass(params);
     if (type === 'attached') {
-      return index.add([args.target], instance);
+      return index.add([params.target], instance);
     } else {
-      const primaryFields = pickBy(args, (v, k) => fields[k] === 'primary');
+      const primaryFields = pickBy(params, (v, k) => fields[k] === 'primary');
       return index.set(Object.values(primaryFields), instance);
     }
   }
-  function createAction(params) {
-    return construct(params);
+  function getAction(params) {
+    if (type === 'attached') {
+      return index.get([params.target]);
+    } else {
+      const primaryFields = pickBy(params, (v, k) => fields[k] === 'primary');
+      return index.get(Object.values(primaryFields));
+    }
   }
-  console.log('here');
   return {
-    construct,
+    getters,
+    setters,
     createAction,
+    getAction,
     index,
   };
 };
@@ -67,17 +72,53 @@ const translationModel = model({
   },
 });
 
-const createTerm = termModel.createAction;
-const createSource = sourceModel.createAction;
-const createTranslation = translationModel.createAction;
+const MTerm = termModel();
+const MSource = sourceModel();
+const MTranslation = translationModel();
 
-const t = createTerm({text: 'yoyo', lang: 'en'});
-const res = t.addSource({name: 'example'});
-createSource({target: t, name: 'example2'});
+const createTerm = MTerm.createAction;
+const createSource = MSource.createAction;
+const createTranslation = MTranslation.createAction;
 
-const deu = createTerm({text: 'wakawaka', lang: 'de'});
+const getTerm = MTerm.getAction;
 
-createTranslation({target: t, term: deu});
+class Term {
+  constructor(params) {
+    this.text = params.text;
+    this.lang = params.lang;
+  }
+  get sources() {
+    return MTerm.getters.sources();
+  }
+  get translations() {
+    return MTerm.getters.translations();
+  }
+  addSource(params) {
+    return MTerm.setters.sources(Source, params);
+  }
+}
 
-console.log('----------', res);
+class Source {
+  constructor(params) {
+    this.target = params.target;
+    this.name = params.name;
+  }
+}
+
+class Translation {
+  constructor(params) {
+    this.target = params.target;
+    this.term = params.term;
+  }
+}
+
+const t = createTerm(Term, {text: 'yoyo', lang: 'en'});
+t.addSource({name: 'example'});
+createSource(Source, {target: t, name: 'example2'});
+
+const deu = new Term({text: 'wakawaka', lang: 'de'});
+
+createTranslation(Translation, {target: t, term: deu});
+
+console.log('----------', getTerm({text: 'yoyo', lang: 'en'}));
 console.log(t);
