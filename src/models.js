@@ -1,5 +1,60 @@
 import generateState from './generateState';
 
+const Search = {
+  primary: ['text'],
+  derived: {
+    searchResults: {
+      model: 'SearchResult',
+      type: 'array',
+      actions: {
+        add: 'addSearchResult',
+      },
+    },
+    detectedLang: {
+      model: 'DetectedLang',
+      type: 'object',
+      actions: {
+        set: 'setDetectedLang',
+      },
+    },
+  },
+  other: {
+    lang: {
+      actions: {
+        update: 'updateLang',
+      },
+    },
+  },
+  actions: {
+    create: 'createSearch',
+    get: 'getSearch',
+  },
+};
+
+const SearchResult = {
+  primary: ['target', 'result'],
+  actions: {
+    create: 'createSearchResult',
+    get: 'getSearchResult',
+  },
+};
+
+const DetectedLang = {
+  primary: ['target', 'lang'],
+  actions: {
+    create: 'createDetectedLang',
+    get: 'getDetectedLang',
+  },
+};
+
+const Fetch = {
+  primary: ['target'],
+  actions: {
+    create: 'createFetch',
+    get: 'getFetch',
+  },
+};
+
 const Term = {
   primary: ['text', 'lang'],
   derived: {
@@ -144,6 +199,10 @@ const FrequencyScore = {
 
 const config = {
   models: {
+    Search,
+    SearchResult,
+    DetectedLang,
+    Fetch,
     Term,
     Phrase,
     Source,

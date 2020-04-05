@@ -1,23 +1,20 @@
 import React, {useState} from 'react';
 import {View, StyleSheet, TextInput, ScrollView} from 'react-native';
 import {RuuiProvider} from 'react-universal-ui';
-import Search from './search';
-import TranslationsList from './components/TranslationsList';
-import SimilarList from './components/SimilarList';
-import SuggestionsList from './components/SuggestionsList';
-import PhrasesList from './components/PhrasesList';
+import ResultsList from './components/ResultsList';
 import Flag from './components/Flag';
+import {SearchSession} from './actions';
 import {observer} from 'mobx-react';
 
-const App = observer(({service}) => {
+const App = observer(({search}) => {
   const [inputValue, setInputValue] = useState('');
 
   const onBlurInput = () => {
     if (inputValue) {
-      service.search(inputValue);
+      search.query = inputValue;
     }
   };
-  const inputChange = text => {
+  const inputChange = (text) => {
     setInputValue(text);
   };
   return (
@@ -30,20 +27,14 @@ const App = observer(({service}) => {
           onChangeText={inputChange}
         />
         <Flag
-          code={service.detectedLang}
+          code={search && search.detectedLang}
           width={40}
           height={34}
           style={styles.flag}
         />
       </View>
       <ScrollView>
-        <SuggestionsList list={service.suggestions} />
-        <TranslationsList list={service.translations} />
-        <SimilarList list={service.similarTerms} />
-        <PhrasesList
-          list={service.examplePhrases}
-          searchTerm={service.searchTerm}
-        />
+        <ResultsList results={search.results} />
       </ScrollView>
     </View>
   );
@@ -52,7 +43,7 @@ const App = observer(({service}) => {
 function AppContainer(props) {
   return (
     <RuuiProvider>
-      <App service={Search} />
+      <App search={new SearchSession()} />
     </RuuiProvider>
   );
 }

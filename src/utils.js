@@ -1,4 +1,4 @@
-import {observable, action} from 'mobx';
+import {observable, action, values} from 'mobx';
 
 export const toObject = (map = new Map(), func) =>
   Object.fromEntries(
@@ -34,6 +34,17 @@ const traverse = (map, path = []) => {
 
 export class Index {
   @observable store = new Map();
+  @action update(path = [], value) {
+    const last = path[path.length - 1];
+    let current = this.store;
+    path.slice(0, -1).forEach(loc => {
+      if (!current.has(loc)) {
+        return;
+      }
+      current = current.get(loc);
+    });
+    current.set(last, values);
+  }
   @action set(path = [], value) {
     const last = path[path.length - 1];
     const location = traverse(this.store, path);

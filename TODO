@@ -1,0 +1,9 @@
+
+Todo:
+  ☐ add chainable functionality for actions
+  ☐ fix issue with duplaicate sources
+  ☐ make sure to add sources to translations, examplePhrases, etc'
+
+  ☐ add unit tests for actions
+  ☐ develop concept of revision updates in data
+  ☐ add persistence with PouchDB

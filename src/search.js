@@ -1,7 +1,3 @@
-import {
-  googleTranslate,
-  gtDetectLanguage,
-} from './fetchSources/googleTranslate';
 import {reverso} from './fetchSources/reverso';
 
 import {
@@ -9,9 +5,11 @@ import {
   getAllPhraseExamples,
   getAllSuggestionTerms,
   getAllSimilarTerms,
+  requestSearch,
 } from './actions';
 import without from 'lodash/without';
 import {observable, action} from 'mobx';
+import 'models2';
 
 const LANGUAGES = ['en', 'de', 'es'];
 
@@ -50,13 +48,12 @@ const Search = observable(
 
     async search(text) {
       this.searchTerm = text;
-      const from = await gtDetectLanguage(text);
-      this.detectedLang = from;
-      const langs = without(LANGUAGES, from);
-      langs.forEach(to => {
-        googleTranslate(text, from, to);
-        reverso(text, from, to);
-      });
+      // await requestSearch(text);
+      // const langs = without(LANGUAGES, from);
+      // langs.forEach(to => {
+      //   googleTranslate(text, from, to);
+      //   reverso(text, from, to);
+      // });
     },
   },
   {

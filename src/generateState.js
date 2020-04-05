@@ -10,9 +10,11 @@ export default function generate(defs) {
   this.modelClasses = Object.fromEntries(
     Object.entries(defs.models).map(([name, model]) => {
       const arrayFields = pickBy(model.derived, prop => prop.type === 'array');
+      const otherFields = model.other || {};
       const customGetters = model.custom?.getters || {};
       const modelClass = class {
         constructor(params) {
+          this.dateCreated = Date.now();
           //set normal param fields
           Object.entries(params).forEach(([n, v]) => {
             this[n] = v;
@@ -23,7 +25,7 @@ export default function generate(defs) {
             if (!v.hide) {
               Object.defineProperty(this, n, {
                 get: function() {
-                  return modelActions.getAction({target: this});
+                  return modelActions.getAction({target: this}, []);
                 },
               });
             }
@@ -32,6 +34,13 @@ export default function generate(defs) {
                 ...args,
                 target: this,
               });
+            };
+          });
+          //set other fields
+          Object.entries(otherFields).forEach(([n, v]) => {
+            this[v.actions.update] = function(val) {
+              this[n] = val;
+              return this;
             };
           });
           //set custom getters
@@ -58,18 +67,18 @@ export default function generate(defs) {
       }
       function getAction(params, fallback) {
         const primaryFields = Object.values(pick(params, model.primary));
-        const res = index.print(primaryFields, fallback);
+        const res = index.get(primaryFields);
         const level = model.primary.length - primaryFields.length;
-        if (level === 1) {
-          return Object.values(res);
-        } else if (level > 1) {
+        if (res && level === 1) {
+          return [...res.values()];
+        } else if (res && level > 1) {
           return flatMapDepth(
-            Object.values(res),
-            val => (isArray(val) ? val : Object.values(val)),
+            [...res.values()],
+            val => (isArray(val) ? val : [...val.values()]),
             level - 1,
           );
         }
-        return res;
+        return res || fallback;
       }
       return [
         name,
