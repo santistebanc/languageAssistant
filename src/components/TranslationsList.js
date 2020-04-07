@@ -2,15 +2,33 @@ import React from 'react';
 import {View, StyleSheet, Text} from 'react-native';
 import Flag from './Flag';
 import {observer} from 'mobx-react';
+import PhrasesList from './PhrasesList';
 
-const TranslationsList = observer(({list}) => {
+const TranslationsList = observer(({term, query}) => {
   return (
     <View style={styles.container}>
-      {list.map((item, i) => (
-        <View key={i} style={styles.item}>
-          <Flag code={item.lang} width={16} height={12} style={styles.flag} />
-          <Text style={styles.result}>{item.text}</Text>
-        </View>
+      {(term.translations?.map(tr => tr.term) || []).map((item, i) => (
+        <React.Fragment key={i}>
+          <View style={styles.item}>
+            <Flag code={item.lang} width={16} height={12} style={styles.flag} />
+            <Text style={styles.result}>{item.text}</Text>
+          </View>
+          <PhrasesList
+            list={
+              term.examplePhrases
+                ?.filter(it =>
+                  it.phrase.translations.some(tr =>
+                    item.examplePhrases
+                      .map(ex => ex.phrase)
+                      .includes(tr.phrase),
+                  ),
+                )
+                .map(it => it.phrase) || []
+            }
+            query={query}
+            trans={item.text}
+          />
+        </React.Fragment>
       ))}
     </View>
   );

@@ -16,14 +16,20 @@ const getHighlightedText = (text, highlight) => {
   );
 };
 
-const PhrasesList = ({list, searchTerm}) => {
+const PhrasesList = ({list, query, trans}) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>EXAMPLES</Text>
       {list.map((item, i) => (
-        <Text key={i} style={styles.result}>
-          {item.text && searchTerm && getHighlightedText(item.text, searchTerm)}
-        </Text>
+        <React.Fragment key={i}>
+          <Text style={styles.result}>
+            {item.text && query && getHighlightedText(item.text, query)}
+          </Text>
+          <Text key={i} style={styles.trans}>
+            {item.text &&
+              query &&
+              getHighlightedText(item.translations[0].phrase.text, trans)}
+          </Text>
+        </React.Fragment>
       ))}
     </View>
   );
@@ -32,11 +38,6 @@ const PhrasesList = ({list, searchTerm}) => {
 export default PhrasesList;
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 12,
-    color: '#333333',
-    marginBottom: 5,
-  },
   item: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -48,8 +49,15 @@ const styles = StyleSheet.create({
   result: {
     fontSize: 16,
     paddingLeft: 4,
-    marginBottom: 10,
     flexDirection: 'row',
+    color: '#365871',
+  },
+  trans: {
+    fontSize: 12,
+    paddingLeft: 4,
+    marginBottom: 14,
+    flexDirection: 'row',
+    color: '#578DB5',
   },
   context: {
     fontSize: 16,

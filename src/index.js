@@ -3,7 +3,7 @@ import {View, StyleSheet, TextInput, ScrollView} from 'react-native';
 import {RuuiProvider} from 'react-universal-ui';
 import ResultsList from './components/ResultsList';
 import Flag from './components/Flag';
-import {SearchSession} from './actions';
+import SearchSession from './search';
 import {observer} from 'mobx-react';
 
 const App = observer(({search}) => {
@@ -14,7 +14,7 @@ const App = observer(({search}) => {
       search.query = inputValue;
     }
   };
-  const inputChange = (text) => {
+  const inputChange = text => {
     setInputValue(text);
   };
   return (
@@ -34,7 +34,7 @@ const App = observer(({search}) => {
         />
       </View>
       <ScrollView>
-        <ResultsList results={search.results} />
+        <ResultsList results={search.results} query={search.query} />
       </ScrollView>
     </View>
   );

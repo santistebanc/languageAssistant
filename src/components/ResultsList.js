@@ -3,15 +3,13 @@ import {View, StyleSheet, Text} from 'react-native';
 import TranslationsList from './TranslationsList';
 import {observer} from 'mobx-react';
 
-const ResultsList = observer(({results = []}) => {
+const ResultsList = observer(({results = [], query}) => {
   return (
     <View style={styles.container}>
       {results.map((term, i) => (
         <React.Fragment key={i}>
           <Text style={styles.title}>{term.text}</Text>
-          <TranslationsList
-            list={term.translations?.map((tr) => tr.term) || []}
-          />
+          <TranslationsList term={term} query={query} />
         </React.Fragment>
       ))}
     </View>

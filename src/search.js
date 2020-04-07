@@ -1,64 +1,50 @@
-import {reverso} from './fetchSources/reverso';
-
-import {
-  getAllTranslations,
-  getAllPhraseExamples,
-  getAllSuggestionTerms,
-  getAllSimilarTerms,
-  requestSearch,
-} from './actions';
-import without from 'lodash/without';
-import {observable, action} from 'mobx';
-import 'models2';
+import {Search} from './models';
+import fetchGoogleTranslate from './fetchSources/googleTranslate';
+import fetchReverso from './fetchSources/reverso';
+import {observable, reaction} from 'mobx';
 
 const LANGUAGES = ['en', 'de', 'es'];
 
-const Search = observable(
-  {
-    detectedLang: '',
-    searchTerm: '',
-
-    get translations() {
-      return getAllTranslations({
-        lang: this.detectedLang,
-        text: this.searchTerm,
-      });
+export default class SearchSession {
+  @observable query = '';
+  get detectedLang() {
+    return this.query && Search.get({text: this.query}, {}).detectedLang?.lang;
+  }
+  get results() {
+    return (
+      (this.query &&
+        Search.get({text: this.query}, {}).results?.map(res => res.term)) ||
+      []
+    );
+  }
+  detectLanguage = reaction(
+    () => this.query,
+    text => {
+      const search = Search.create({text});
+      if (!search.detectedLang) {
+        fetchGoogleTranslate(search, {
+          text,
+          to: LANGUAGES[0],
+        });
+      }
     },
-
-    get suggestions() {
-      return getAllSuggestionTerms({
-        lang: this.detectedLang,
-        text: this.searchTerm,
-      });
+  );
+  searchQuery = reaction(
+    () => ({from: this.detectedLang, text: this.query}),
+    ({text, from}) => {
+      const search = Search.create({text});
+      if (from) {
+        LANGUAGES.forEach(to => {
+          if (to !== from) {
+            fetchGoogleTranslate(search, {
+              text,
+              from,
+              to,
+            });
+            fetchReverso(search, {text, from, to});
+          }
+        });
+      }
     },
-
-    get similarTerms() {
-      return getAllSimilarTerms({
-        lang: this.detectedLang,
-        text: this.searchTerm,
-      });
-    },
-
-    get examplePhrases() {
-      return getAllPhraseExamples({
-        lang: this.detectedLang,
-        text: this.searchTerm,
-      });
-    },
-
-    async search(text) {
-      this.searchTerm = text;
-      // await requestSearch(text);
-      // const langs = without(LANGUAGES, from);
-      // langs.forEach(to => {
-      //   googleTranslate(text, from, to);
-      //   reverso(text, from, to);
-      // });
-    },
-  },
-  {
-    search: action,
-  },
-);
-
-export default Search;
+  );
+}

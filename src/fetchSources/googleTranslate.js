@@ -1,11 +1,13 @@
 import {Platform} from 'react-native';
 import translate from './utils/translate';
-import {Fetch} from '../models2';
+import {Fetch} from '../models';
+import {transaction} from 'mobx';
+import {addTranslationPair} from '../actions';
+import sanitize from './utils/sanitize';
 
 const CORSService = Platform.OS === 'web' && 'https://cors.x7.workers.dev/';
-const source = {name: 'googleTranslate', action: 'searchFetch'};
 
-export default async ({text, from = 'auto', to = 'en'}) => {
+export default async (search, {text, from = 'auto', to = 'en'}) => {
   const params = {text, from, to};
   const fetchFields = {
     name: 'googleTranslate',
@@ -18,15 +20,27 @@ export default async ({text, from = 'auto', to = 'en'}) => {
     try {
       const res = await translate(text, {from, to}, CORSService);
       const detectedLang = res.from.language.iso || from;
-      const response = {text, from: detectedLang, to, source};
-      if (detectedLang !== to) {
-        if (res.from.text.value) {
-          const correct = res.from.text.value.replace('[', '').replace(']', '');
-          response.correction = correct;
+      transaction(() => {
+        search.set.detectedLang({lang: detectedLang});
+        if (detectedLang !== to) {
+          let correctText = text;
+          if (res.from.text.value) {
+            correctText = res.from.text.value.replace('[', '').replace(']', '');
+            search.add.corrections({
+              correction: sanitize(correctText),
+              lang: detectedLang,
+            });
+          }
+          const {fromTerm} = addTranslationPair({
+            from: detectedLang,
+            to,
+            original: sanitize(correctText),
+            translated: sanitize(res.text),
+          });
+          search.add.results({term: fromTerm});
         }
-        response.translation = res.text;
-      }
-      return Fetch.create({...fetchFields, data: response});
+      });
+      return Fetch.create({...fetchFields});
     } catch (err) {
       console.log(err);
     }
