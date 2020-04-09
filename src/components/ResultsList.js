@@ -1,14 +1,15 @@
-import React from 'react';
-import {View, StyleSheet, Text} from 'react-native';
-import TranslationsList from './TranslationsList';
-import {observer} from 'mobx-react';
+import React from "react";
+import { View, StyleSheet, Text } from "react-native";
+import TranslationsList from "./TranslationsList";
+import { observer } from "mobx-react";
+import ResultText from "./ResultText";
 
-const ResultsList = observer(({results = [], query}) => {
+const ResultsList = observer(({ results = [], query }) => {
   return (
     <View style={styles.container}>
       {results.map((term, i) => (
         <React.Fragment key={i}>
-          <Text style={styles.title}>{term.text}</Text>
+          <ResultText style={styles.title} value={term.text || ""} />
           <TranslationsList term={term} query={query} />
         </React.Fragment>
       ))}
@@ -20,9 +21,10 @@ export default ResultsList;
 
 const styles = StyleSheet.create({
   title: {
-    fontSize: 18,
-    color: '#333333',
+    fontSize: 22,
+    color: "#333333",
     marginBottom: 5,
+    marginTop: 18,
   },
   result: {
     fontSize: 16,

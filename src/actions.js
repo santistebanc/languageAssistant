@@ -1,6 +1,6 @@
-import {Term, Phrase} from './models';
+import { Term, Phrase } from "./models";
 
-export function addTranslationPair({from, to, original, translated}) {
+export function addTranslationPair({ from, to, original, translated }) {
   const originalTerm = Term.create({
     text: original,
     lang: from,
@@ -9,13 +9,9 @@ export function addTranslationPair({from, to, original, translated}) {
     text: translated,
     lang: to,
   });
-  originalTerm.add.translations({
-    term: translationTerm,
-  });
-  translationTerm.add.translations({
-    term: originalTerm,
-  });
-  return {fromTerm: originalTerm, toTerm: translationTerm};
+  originalTerm.add.translations(translationTerm);
+  translationTerm.add.translations(originalTerm);
+  return { fromTerm: originalTerm, toTerm: translationTerm };
 }
 
 export function addExamplePhrasePair({
@@ -26,31 +22,25 @@ export function addExamplePhrasePair({
   originalTerm,
   translatedTerm,
 }) {
-  const {fromTerm, toTerm} = addTranslationPair({
+  const { fromTerm, toTerm } = addTranslationPair({
     from,
     to,
     original: originalTerm,
     translated: translatedTerm,
   });
   const examplePhrase1 = fromTerm.add.examplePhrases({
-    phrase: Phrase.create({
-      lang: from,
-      text: originalPhrase,
-    }),
+    lang: from,
+    text: originalPhrase,
   });
   const examplePhrase2 = toTerm.add.examplePhrases({
-    phrase: Phrase.create({
-      lang: to,
-      text: translatedPhrase,
-    }),
+    lang: to,
+    text: translatedPhrase,
   });
-  const transPhrase1 = examplePhrase1.phrase.add.translations({
-    phrase: examplePhrase2.phrase,
-  });
-  const transPhrase2 = examplePhrase2.phrase.add.translations({
-    phrase: examplePhrase1.phrase,
-  });
-  return {fromPhrase: transPhrase1.phrase, toPhrase: transPhrase2.phrase};
+  examplePhrase1.add.terms(fromTerm);
+  examplePhrase2.add.terms(toTerm);
+  const transPhrase1 = examplePhrase1.add.translations(examplePhrase2);
+  const transPhrase2 = examplePhrase2.add.translations(examplePhrase1);
+  return { fromPhrase: transPhrase1, toPhrase: transPhrase2 };
 }
 
 // //direct
@@ -76,16 +66,15 @@ export function addExamplePhrasePair({
 //   return term.addSuggestionTerm({term: suggTerm});
 // }
 
-export function addSimilarTerm({original, similar, lang, source}) {
+export function addSimilarTerm({ original, similar, lang, source }) {
   const term = Term.create({
     text: original,
     lang,
   });
-  const simTerm = Term.create({
+  return term.add.similar({
     text: similar,
     lang,
   });
-  return term.add.similar({term: simTerm});
 }
 
 // export function addFrequencyScore({target, freq, weight, source}) {

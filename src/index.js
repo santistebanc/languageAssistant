@@ -1,20 +1,21 @@
-import React, {useState} from 'react';
-import {View, StyleSheet, TextInput, ScrollView} from 'react-native';
-import {RuuiProvider} from 'react-universal-ui';
-import ResultsList from './components/ResultsList';
-import Flag from './components/Flag';
-import SearchSession from './search';
-import {observer} from 'mobx-react';
+import React, { useState } from "react";
+import { View, StyleSheet, TextInput, ScrollView } from "react-native";
+import { RuuiProvider } from "react-universal-ui";
+import ResultsList from "./components/ResultsList";
+import Flag from "./components/Flag";
+import SearchSession from "./search";
+import { observer } from "mobx-react";
 
-const App = observer(({search}) => {
-  const [inputValue, setInputValue] = useState('');
+const App = observer(({ search }) => {
+  const [inputValue, setInputValue] = useState("");
 
-  const onBlurInput = () => {
+  const onSubmit = () => {
     if (inputValue) {
+      setInputValue("");
       search.query = inputValue;
     }
   };
-  const inputChange = text => {
+  const inputChange = (text) => {
     setInputValue(text);
   };
   return (
@@ -22,9 +23,9 @@ const App = observer(({search}) => {
       <View style={styles.searchbar}>
         <TextInput
           style={styles.input}
-          onBlur={onBlurInput}
           value={inputValue}
           onChangeText={inputChange}
+          onSubmitEditing={onSubmit}
         />
         <Flag
           code={search && search.detectedLang}
@@ -43,7 +44,7 @@ const App = observer(({search}) => {
 function AppContainer(props) {
   return (
     <RuuiProvider>
-      <App search={new SearchSession()} />
+      <App search={SearchSession} />
     </RuuiProvider>
   );
 }
@@ -52,26 +53,26 @@ export default AppContainer;
 
 const styles = StyleSheet.create({
   container: {
-    height: '100%',
+    height: "100%",
   },
   searchbar: {
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   translation: {
-    textAlign: 'center',
-    color: '#333333',
+    textAlign: "center",
+    color: "#333333",
     marginBottom: 5,
   },
   input: {
     flex: 1,
     fontSize: 18,
     borderWidth: 1,
-    borderColor: '#d6d7da',
+    borderColor: "#d6d7da",
     paddingBottom: 4,
     paddingTop: 4,
     paddingRight: 4,
     paddingLeft: 4,
-    height: 'auto',
+    height: "auto",
     minWidth: 200,
   },
 });

@@ -1,35 +1,46 @@
-import React from 'react';
-import {View, StyleSheet, Text} from 'react-native';
-import Flag from './Flag';
-import {observer} from 'mobx-react';
-import PhrasesList from './PhrasesList';
+import React from "react";
+import { View, StyleSheet, Text } from "react-native";
+import Flag from "./Flag";
+import { observer } from "mobx-react";
+import PhrasesList from "./PhrasesList";
+import ResultText from "./ResultText";
 
-const TranslationsList = observer(({term, query}) => {
+const TranslationsList = observer(({ term, query }) => {
   return (
     <View style={styles.container}>
-      {(term.translations?.map(tr => tr.term) || []).map((item, i) => (
-        <React.Fragment key={i}>
-          <View style={styles.item}>
-            <Flag code={item.lang} width={16} height={12} style={styles.flag} />
-            <Text style={styles.result}>{item.text}</Text>
-          </View>
-          <PhrasesList
-            list={
-              term.examplePhrases
-                ?.filter(it =>
-                  it.phrase.translations.some(tr =>
-                    item.examplePhrases
-                      .map(ex => ex.phrase)
-                      .includes(tr.phrase),
-                  ),
-                )
-                .map(it => it.phrase) || []
-            }
-            query={query}
-            trans={item.text}
-          />
-        </React.Fragment>
-      ))}
+      {term.translations
+        .sort(
+          (a, b) =>
+            (b.examplePhrases.length ? 5000 : 0) +
+            (b.frequencyScores?.[0]?.freq || 0) -
+            (a.examplePhrases.length ? 5000 : 0) -
+            (a.frequencyScores?.[0]?.freq || 0)
+        )
+        .map((item, i) => (
+          <React.Fragment key={i}>
+            <View style={styles.item}>
+              <Flag
+                code={item.lang}
+                width={16}
+                height={12}
+                style={styles.flag}
+              />
+              <ResultText
+                style={styles.result}
+                value={
+                  item.text || ""
+                }
+              />
+            </View>
+            <PhrasesList
+              list={item.examplePhrases.map((ph) =>
+                ph.translations.find((tr) => tr.lang === term.lang)
+              )}
+              query={query}
+              trans={item}
+            />
+          </React.Fragment>
+        ))}
     </View>
   );
 });
@@ -39,12 +50,12 @@ export default TranslationsList;
 const styles = StyleSheet.create({
   title: {
     fontSize: 12,
-    color: '#333333',
+    color: "#333333",
     marginBottom: 5,
   },
   item: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+    flexDirection: "row",
+    alignItems: "flex-end",
   },
   flag: {
     marginBottom: 4,

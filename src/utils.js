@@ -1,4 +1,4 @@
-import {observable, action, values} from 'mobx';
+import { observable, action, values } from "mobx";
 
 export const toObject = (map = new Map(), func) =>
   Object.fromEntries(
@@ -13,17 +13,17 @@ export const toObject = (map = new Map(), func) =>
           const key =
             kk instanceof Map
               ? toObject(kk)
-              : typeof kk === 'object'
+              : typeof kk === "object"
               ? JSON.stringify(kk)
               : kk;
           return [key, val];
-        }),
-    ),
+        })
+    )
   );
 
 const traverse = (map, path = []) => {
   let current = map;
-  path.slice(0, -1).forEach(loc => {
+  path.slice(0, -1).forEach((loc) => {
     if (!current.has(loc)) {
       current.set(loc, new Map());
     }
@@ -37,7 +37,7 @@ export class Index {
   @action update(path = [], value) {
     const last = path[path.length - 1];
     let current = this.store;
-    path.slice(0, -1).forEach(loc => {
+    path.slice(0, -1).forEach((loc) => {
       if (!current.has(loc)) {
         return;
       }
@@ -76,7 +76,7 @@ export class Index {
     return current;
   }
   has(path = []) {
-    return typeof this.get(path) !== 'undefined';
+    return typeof this.get(path) !== "undefined";
   }
   print(path = []) {
     return toObject(this.get(path));

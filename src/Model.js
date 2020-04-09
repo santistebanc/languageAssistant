@@ -1,10 +1,12 @@
-import {Index} from './utils';
-import {pick, isArray, flatMapDepth, without} from 'lodash';
+import { Index } from "./utils";
+import { pick, isArray, flatMapDepth, without } from "lodash";
+
+export const Connection = new Model(["name", "origin", "target"]);
 
 export default function Model(primary) {
   this.index = new Index();
   const derived = {};
-  this.connect = function (name, type) {
+  this.connect = function(name, type) {
     derived[name] = type;
   };
 
@@ -21,27 +23,38 @@ export default function Model(primary) {
       Object.entries(derived).forEach(([n, v]) => {
         if (isArray(v)) {
           Object.defineProperty(this, n, {
-            get: function () {
-              return v[0].get({target: this}, []);
+            get: function() {
+              return Connection.get({ name: n, origin: this }, []).map(
+                (con) => con.target
+              );
             },
           });
           this.add[n] = (args) => {
-            return v[0].create({
-              target: this,
-              ...args,
-            });
+            const target = v[0].create({ ...args });
+            return Connection.create({
+              name: n,
+              origin: this,
+              target,
+            }).target;
           };
         } else {
           Object.defineProperty(this, n, {
-            get: function () {
-              return v.get({target: this});
+            get: function() {
+              return Connection.get({ name: n, origin: this }, [])[0]?.target;
             },
           });
           this.set[n] = (args) => {
-            return v.create({
-              target: this,
-              ...args,
-            });
+            const target = v.create({ ...args });
+            const existing = Connection.get({ name: n, origin: this }, [])[0]
+              ?.target;
+            return (
+              existing ||
+              Connection.create({
+                name: n,
+                origin: this,
+                target,
+              }).target
+            );
           };
         }
       });
@@ -62,7 +75,7 @@ export default function Model(primary) {
       return flatMapDepth(
         [...res.values()],
         (val) => (isArray(val) ? val : [...val.values()]),
-        level - 1,
+        level - 1
       );
     }
     return res || fallback;

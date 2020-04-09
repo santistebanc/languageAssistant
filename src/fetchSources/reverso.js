@@ -1,22 +1,32 @@
-import {Platform} from 'react-native';
-import cheerio from 'cheerio-without-node-native';
-import {transaction} from 'mobx';
+import { Platform } from "react-native";
+import cheerio from "cheerio-without-node-native";
+import { transaction } from "mobx";
 import {
   addTranslationPair,
   addSimilarTerm,
   addExamplePhrasePair,
-} from '../actions';
-import {Fetch, Term} from '../models';
-import sanitize from './utils/sanitize';
+} from "../actions";
+import { Fetch } from "../models";
+import sanitize from "./utils/sanitize";
 
-const CORSService = Platform.OS === 'web' ? 'https://cors.x7.workers.dev/' : '';
-const mappingLang = lang =>
-  ({en: 'english', de: 'german', es: 'spanish'}[lang]);
+import UserAgent from "user-agents";
 
-export default async (search, {text, from, to}) => {
-  const params = {text, from, to};
+const userAgent = new UserAgent();
+
+const fetchOptions = {
+  headers: {
+    "User-Agent": userAgent.toString(),
+  },
+};
+
+const CORSService = Platform.OS === "web" ? "https://cors.x7.workers.dev/" : "";
+const mappingLang = (lang) =>
+  ({ en: "english", de: "german", es: "spanish" }[lang]);
+
+export default async (search, { text, from, to }) => {
+  const params = { text, from, to };
   const fetchFields = {
-    name: 'reverso',
+    name: "reverso",
     params: JSON.stringify(params),
   };
   const cached = Fetch.get(fetchFields);
@@ -27,12 +37,12 @@ export default async (search, {text, from, to}) => {
       const searchUrl =
         CORSService +
         `https://context.reverso.net/translation/${mappingLang(
-          from,
-        )}-${mappingLang(to)}/${text.replace(' ', '+')}`;
-      const response = await fetch(searchUrl);
+          from
+        )}-${mappingLang(to)}/${text.replace(" ", "+")}`;
+      const response = await fetch(searchUrl, fetchOptions);
       const htmlString = await response.text();
       const $ = cheerio.load(htmlString);
-      const searchQuery = sanitize($('#entry').val());
+      const searchQuery = sanitize($("#entry").val());
       transaction(() => {
         if (searchQuery !== text) {
           search.add.corrections({
@@ -40,24 +50,27 @@ export default async (search, {text, from, to}) => {
             lang: from,
           });
         }
-        $('#translations-content>a.translation')
+        $("#translations-content>a.translation")
           .slice(1)
           .each(function(i, el) {
             const trans = sanitize(
               $(this)
                 .text()
-                .trim(),
+                .trim()
             );
-            const {toTerm} = addTranslationPair({
+            const { toTerm } = addTranslationPair({
               from,
               to,
               original: searchQuery,
               translated: trans,
             });
-            const freq = sanitize($(this).attr('data-freq'));
-            toTerm.add.frequencyScores({freq, weight: 5});
+            const freq = sanitize($(this).attr("data-freq"));
+            toTerm.frequencyScores = [
+              ...(toTerm.frequencyScores || []),
+              { source: "reverso", freq, weight: 5 },
+            ];
           });
-        $('#seealso-content>a').each(function() {
+        $("#seealso-content>a").each(function() {
           const similar = sanitize($(this).text());
           addSimilarTerm({
             original: searchQuery,
@@ -65,11 +78,11 @@ export default async (search, {text, from, to}) => {
             lang: from,
           });
         });
-        $('#splitting-content>.split.wide-container').each(function() {
+        $("#splitting-content>.split.wide-container").each(function() {
           const similar = sanitize(
             $(this)
-              .find('a.src')
-              .text(),
+              .find("a.src")
+              .text()
           );
           addSimilarTerm({
             original: searchQuery,
@@ -77,7 +90,7 @@ export default async (search, {text, from, to}) => {
             lang: from,
           });
           $(this)
-            .find('.trgs>a.translation')
+            .find(".trgs>a.translation")
             .each(function() {
               const trans = sanitize($(this).text());
               addTranslationPair({
@@ -88,24 +101,24 @@ export default async (search, {text, from, to}) => {
               });
             });
         });
-        $('#examples-content>.example').each(function() {
+        $("#examples-content>.example").each(function() {
           const phraseOriginal = sanitize(
             $(this)
-              .find('.src>.text')
+              .find(".src>.text")
               .text()
-              .trim(),
+              .trim()
           );
           const highlightOriginal = $(this)
-            .find('.src>.text em')
+            .find(".src>.text em")
             .map(function() {
               return sanitize(
                 $(this)
                   .text()
-                  .trim(),
+                  .trim()
               );
             })
             .get();
-          const termTextOriginal = highlightOriginal.join(' ... ');
+          const termTextOriginal = highlightOriginal.join(" ... ");
           if (termTextOriginal !== searchQuery) {
             addSimilarTerm({
               original: searchQuery,
@@ -115,22 +128,22 @@ export default async (search, {text, from, to}) => {
           }
           const phraseTranslated = sanitize(
             $(this)
-              .find('.trg>.text')
+              .find(".trg>.text")
               .text()
-              .trim(),
+              .trim()
           );
           const highlightTranslated = $(this)
-            .find('.trg>.text em')
+            .find(".trg>.text em")
             .map(function() {
               return sanitize(
                 $(this)
                   .text()
-                  .trim(),
+                  .trim()
               );
             })
             .get();
           //TODO: solve issue with repeated words like 'mein'
-          const termTextTranslated = highlightTranslated.join(' ... ');
+          const termTextTranslated = highlightTranslated.join(" ... ");
           addExamplePhrasePair({
             from,
             to,
@@ -139,11 +152,10 @@ export default async (search, {text, from, to}) => {
             originalPhrase: phraseOriginal,
             translatedPhrase: phraseTranslated,
           });
-          const term = Term.create({text: termTextOriginal, lang: from});
-          search.add.results({term});
+          search.add.results({ text: termTextOriginal, lang: from });
         });
       });
-      return Fetch.create({...fetchFields});
+      return Fetch.create({ ...fetchFields });
     } catch (err) {
       console.log(err);
     }

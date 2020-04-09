@@ -1,30 +1,24 @@
-import Model from './Model';
+import Model from "./Model";
 
-export const Search = new Model(['text']);
-export const SearchResult = new Model(['target', 'term']);
-export const SearchCorrection = new Model(['target', 'correction', 'lang']);
-export const DetectedLang = new Model(['target']);
+export const Search = new Model(["text"]);
+export const SearchCorrection = new Model(["correction", "lang"]);
+export const DetectedLang = new Model(["lang"]);
 
-export const Fetch = new Model(['name', 'params']);
-export const Source = new Model(['target', 'name']);
+export const Fetch = new Model(["name", "params"]);
+export const Source = new Model(["name"]);
 
-export const Term = new Model(['text', 'lang']);
-export const Translation = new Model(['target', 'term']);
-export const SimilarTerm = new Model(['target', 'term']);
-export const ExamplePhrase = new Model(['target', 'phrase']);
-export const FrequencyScore = new Model(['target', 'source']);
-export const Phrase = new Model(['text', 'lang']);
-export const PhraseTranslation = new Model(['target', 'phrase']);
+export const Term = new Model(["text", "lang"]);
+export const Phrase = new Model(["text", "lang"]);
 
-Term.connect('sources', [Source]);
-Term.connect('translations', [Translation]);
-Term.connect('similar', [SimilarTerm]);
-Term.connect('examplePhrases', [ExamplePhrase]);
-Term.connect('frequencyScores', [FrequencyScore]);
+Term.connect("sources", [Source]);
+Term.connect("translations", [Term]);
+Term.connect("similar", [Term]);
+Term.connect("examplePhrases", [Phrase]);
 
-Phrase.connect('sources', [Source]);
-Phrase.connect('translations', [PhraseTranslation]);
+Phrase.connect("sources", [Source]);
+Phrase.connect("translations", [Phrase]);
+Phrase.connect("terms", [Term]);
 
-Search.connect('results', [SearchResult]);
-Search.connect('corrections', [SearchCorrection]);
-Search.connect('detectedLang', DetectedLang);
+Search.connect("results", [Term]);
+Search.connect("corrections", [SearchCorrection]);
+Search.connect("detectedLang", DetectedLang);
