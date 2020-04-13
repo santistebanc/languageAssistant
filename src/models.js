@@ -1,24 +1,30 @@
-import Model from "./Model";
+import Model, { Field } from "./Model";
 
-export const Search = new Model(["text"]);
-export const SearchCorrection = new Model(["correction", "lang"]);
-export const DetectedLang = new Model(["lang"]);
+export const Search = new Model("Search", ["text"]);
+export const SearchCorrection = new Model("SearchCorrection", [
+  "correction",
+  "lang"
+]);
 
-export const Fetch = new Model(["name", "params"]);
-export const Source = new Model(["name"]);
+export const Fetch = new Model("Fetch", ["name", "params"]);
+export const Source = new Model("Source", ["name"]);
 
-export const Term = new Model(["text", "lang"]);
-export const Phrase = new Model(["text", "lang"]);
+export const Term = new Model("Term", ["text", "lang"]);
+export const Phrase = new Model("Phrase", ["text", "lang"]);
 
-Term.connect("sources", [Source]);
-Term.connect("translations", [Term]);
-Term.connect("similar", [Term]);
-Term.connect("examplePhrases", [Phrase]);
+export const DetectedLang = new Field("DetectedLang", ["lang"]);
+export const FrequencyScore = new Field("FrequencyScore", ["source"]);
 
-Phrase.connect("sources", [Source]);
-Phrase.connect("translations", [Phrase]);
-Phrase.connect("terms", [Term]);
+Term.hasMany("sources", Source);
+Term.hasMany("translations", Term);
+Term.hasMany("similar", Term);
+Term.hasMany("examplePhrases", Phrase);
+Term.hasMany("frequencyScores", FrequencyScore);
 
-Search.connect("results", [Term]);
-Search.connect("corrections", [SearchCorrection]);
-Search.connect("detectedLang", DetectedLang);
+Phrase.hasMany("sources", Source);
+Phrase.hasMany("translations", Phrase);
+Phrase.hasMany("terms", Term);
+
+Search.hasMany("results", Term);
+Search.hasMany("corrections", SearchCorrection);
+Search.hasOne("detectedLang", DetectedLang);

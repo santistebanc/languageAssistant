@@ -1,84 +1,46 @@
 import { observable, action, values } from "mobx";
 
-export const toObject = (map = new Map(), func) =>
-  Object.fromEntries(
-    Array.from(
-      map.entries(),
-      func ||
-        (([k, v]) => {
-          const vv = v.toJS ? v.toJS() : v;
-          const val =
-            vv instanceof Map ? toObject(vv) : vv instanceof Set ? [...vv] : vv;
-          const kk = k.toJS ? k.toJS() : k;
-          const key =
-            kk instanceof Map
-              ? toObject(kk)
-              : typeof kk === "object"
-              ? JSON.stringify(kk)
-              : kk;
-          return [key, val];
-        })
-    )
-  );
+export const SEPARATOR = "\u00A0";
 
-const traverse = (map, path = []) => {
-  let current = map;
-  path.slice(0, -1).forEach((loc) => {
-    if (!current.has(loc)) {
-      current.set(loc, new Map());
-    }
-    current = current.get(loc);
-  });
-  return current;
-};
+export const toId = (keys, prefix = "") =>
+  prefix + "//" + keys.map(k => (k._id ? k._id : k)).join(SEPARATOR);
 
 export class Index {
-  @observable store = new Map();
-  @action update(path = [], value) {
-    const last = path[path.length - 1];
-    let current = this.store;
-    path.slice(0, -1).forEach((loc) => {
-      if (!current.has(loc)) {
-        return;
-      }
-      current = current.get(loc);
-    });
-    current.set(last, values);
+  constructor(num, prefix) {
+    this.num = num;
+    this.prefix = prefix;
   }
-  @action set(path = [], value) {
-    const last = path[path.length - 1];
-    const location = traverse(this.store, path);
-    if (!location.has(last)) {
-      location.set(last, value);
+  @observable store = {};
+  select(path = []) {
+    if (path.length < this.num) {
+      const res = this.getAll(path);
+      const exists = Boolean(res.length);
+      const get = exists ? fallback => res : fallback => fallback;
+      return { get, exists };
+    } else {
+      const _id = toId(path, this.prefix);
+      const exists = typeof this.store[_id] !== "undefined";
+      const get = exists ? fallback => this.get(_id) : fallback => fallback;
+      const set = exists ? () => this.get(_id) : value => this.set(_id, value);
+      return { get, set, _id, exists };
     }
-    return location.get(last);
   }
-  @action add(path = [], value) {
-    const last = path[path.length - 1];
-    const location = traverse(this.store, path);
-    if (!location.has(last)) {
-      location.set(last, new Set());
-    }
-    location.get(last).add(value);
-    return value;
+  getAll(path = []) {
+    if (!path.length) return Object.values(this.store);
+    const _id = toId(path, this.prefix);
+    return Object.entries(this.store)
+      .filter(([k, v]) => k.startsWith(_id))
+      .map(([k, v]) => v);
   }
-  get(path = [], fallback) {
-    let current = this.store;
-    for (const next of path) {
-      if (!current.has(next)) {
-        return fallback;
-      }
-      current = current.get(next);
-    }
-    if (current.toJS && current.toJS() instanceof Set) {
-      return Array.from(current);
-    }
-    return current;
+  get(_id) {
+    return this.store[_id];
   }
-  has(path = []) {
-    return typeof this.get(path) !== "undefined";
+  exists(path = []) {
+    if (!path.length) return false;
+    const _id = toId(path, this.prefix);
+    return typeof this.store[_id] !== "undefined";
   }
-  print(path = []) {
-    return toObject(this.get(path));
+  @action set(_id, value) {
+    return (this.store[_id] = value);
   }
 }

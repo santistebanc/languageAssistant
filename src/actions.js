@@ -1,4 +1,4 @@
-import { Term, Phrase } from "./models";
+import { Term, Phrase, Fetch } from "./models";
 
 export function addTranslationPair({ from, to, original, translated }) {
   const originalTerm = Term.create({
@@ -43,29 +43,6 @@ export function addExamplePhrasePair({
   return { fromPhrase: transPhrase1, toPhrase: transPhrase2 };
 }
 
-// //direct
-// export function getAllTranslations({lang, text}) {
-//   return getTerm({lang, text})?.translations?.map((it) => it.term) || [];
-// }
-
-// export function getAllPhraseExamples({lang, text}) {
-//   return getTerm({lang, text})?.examplePhrases?.map((it) => it.phrase) || [];
-// }
-
-// export function getAllSimilarTerms({lang, text}) {
-//   return getTerm({lang, text})?.similarTerms?.map((it) => it.term) || [];
-// }
-
-// export function getAllSuggestionTerms({lang, text}) {
-//   return getTerm({lang, text})?.suggestionTerms?.map((it) => it.term) || [];
-// }
-
-// export function addSuggestion({original, suggestion, lang, source}) {
-//   const term = createTermWithSource({lang, text: original, source});
-//   const suggTerm = createTermWithSource({lang, text: suggestion, source});
-//   return term.addSuggestionTerm({term: suggTerm});
-// }
-
 export function addSimilarTerm({ original, similar, lang, source }) {
   const term = Term.create({
     text: original,
@@ -77,9 +54,22 @@ export function addSimilarTerm({ original, similar, lang, source }) {
   });
 }
 
-// export function addFrequencyScore({target, freq, weight, source}) {
-//   let src = {};
-//   const freqScore = createFrequencyScore({target, freq, weight, source: src});
-//   src = createSource({target: freqScore, name: source});
-//   return freqScore;
-// }
+export const fetchCall = async (name, params, func) => {
+  const fetchFields = {
+    name,
+    params: JSON.stringify(params),
+  };
+  const cached = Fetch.get(fetchFields);
+  if (cached) {
+    return cached;
+  } else {
+    const start = Date.now();
+    return func()
+      .then(() =>
+        Fetch.create({ ...fetchFields, duration: Date.now() - start })
+      )
+      .catch((err) => {
+        console.log(err);
+      });
+  }
+};

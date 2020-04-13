@@ -22,7 +22,7 @@ const PhrasesList = ({ list, query, trans }) => {
     <View style={styles.container}>
       {list.map(
         (item, i) =>
-          item.text &&
+          item && item.text &&
           query && (
             <React.Fragment key={i}>
               <ResultText

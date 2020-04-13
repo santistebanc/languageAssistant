@@ -39,7 +39,7 @@ class SearchSession {
               from,
               to,
             });
-            fetchReverso(search, { text, from, to });
+            // fetchReverso(search, { text, from, to });
           }
         });
       }
