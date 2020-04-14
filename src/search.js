@@ -17,12 +17,12 @@ class SearchSession {
   }
   detectLanguage = reaction(
     () => this.query,
-    (text) => {
+    text => {
       const search = Search.create({ text });
       if (!search.detectedLang) {
         fetchGoogleTranslate(search, {
           text,
-          to: LANGUAGES[0],
+          to: LANGUAGES[0]
         });
       }
     }
@@ -32,14 +32,14 @@ class SearchSession {
     ({ text, from }) => {
       const search = Search.create({ text });
       if (from) {
-        LANGUAGES.forEach((to) => {
+        LANGUAGES.forEach(to => {
           if (to !== from) {
             fetchGoogleTranslate(search, {
               text,
               from,
-              to,
+              to
             });
-            // fetchReverso(search, { text, from, to });
+            fetchReverso(search, { text, from, to });
           }
         });
       }

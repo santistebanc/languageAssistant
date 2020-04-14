@@ -19,14 +19,14 @@ export default (search, { text, from = "auto", to = "en" }) =>
           correctText = res.from.text.value.replace("[", "").replace("]", "");
           search.add.corrections({
             correction: sanitize(correctText),
-            lang: detectedLang,
+            lang: detectedLang
           });
         }
         const { fromTerm } = addTranslationPair({
           from: detectedLang,
           to,
           original: sanitize(correctText),
-          translated: sanitize(res.text),
+          translated: sanitize(res.text)
         });
         search.add.results(fromTerm);
       }

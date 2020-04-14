@@ -1,26 +1,108 @@
 import { Index } from "./utils";
 import { pick, isArray, flatMapDepth, without, omit } from "lodash";
-import shortUUID from "short-uuid";
 import db from "./db";
 import Sync from "./sync";
-import { observe } from "mobx";
+import { observe, observable, autorun, action } from "mobx";
+import Store from "./Store";
 
 export const allModels = {};
 window.allModels = allModels;
 
-const buildId = id => JSON.stringify(id.map(i => (i._id ? i._id : i)));
+class BareEntity {
+  constructor(params) {
+    this.dateCreated = Date.now();
+    //set normal param fields
+    Object.entries(params).forEach(([n, v]) => {
+      this[n] = v;
+    });
+  }
+}
 
-class Model {
-  hasManyCons = {};
-  hasOneCons = {};
-
+class BareModel {
   constructor(name, primary) {
     allModels[name] = this;
     this.name = name;
     this.primary = primary;
     this.index = new Index(primary.length, name);
+    this.modelClass = BareEntity;
   }
 
+  create = (params) => {
+    const primaryFields = Object.values(pick(params, this.primary));
+    const selection = this.index.select(primaryFields);
+    const _id = selection._id;
+    const res = selection.set(
+      new this.modelClass({
+        _id,
+        model: this.name,
+        ...params,
+      })
+    );
+    const toSave = omit({ ...res }, ["add", "set"]);
+    if (!selection.exists) Sync.saveEntity(toSave);
+    return res;
+  };
+
+  get = (params = [], fallback) => {
+    const primaryValues = this.primary.map((key) => params[key]);
+    const primaryFields = without(primaryValues, undefined);
+    return this.index.select(primaryFields).get(fallback);
+  };
+}
+
+export function getModelClass(hasOneCons, hasManyCons) {
+  return class Entity extends BareEntity {
+    constructor(params) {
+      super(params);
+      //set dynamic fields
+      this.set = {};
+      this.add = {};
+      Object.entries(hasOneCons).forEach(([field, model]) => {
+        Object.defineProperty(this, field, {
+          get: function() {
+            const tar = HasOne.get({ field, origin: this._id }, {}).target;
+            return Store.get(tar);
+          },
+        });
+        this.set[field] = (args) => {
+          const extra = model instanceof Field ? { origin: this._id } : {};
+          const target = model.create({ ...extra, ...args });
+          const con = HasOne.create(
+            { field, origin: this._id, target: target._id },
+            {}
+          );
+          return Store.get(con.target);
+        };
+      });
+      Object.entries(hasManyCons).forEach(([field, model]) => {
+        Object.defineProperty(this, field, {
+          get: function() {
+            return HasMany.get({ field, origin: this._id }, []).map((c) =>
+              Store.get(c.target)
+            );
+          },
+        });
+        this.add[field] = (args) => {
+          const extra = model instanceof Field ? { origin: this._id } : {};
+          const target = model.create({ ...extra, ...args });
+          const con = HasMany.create(
+            { field, origin: this._id, target: target._id },
+            {}
+          );
+          return Store.get(con.target);
+        };
+      });
+    }
+  };
+}
+
+class Model extends BareModel {
+  hasManyCons = {};
+  hasOneCons = {};
+
+  constructor(name, primary) {
+    super(name, primary);
+  }
   hasMany = (field, type) => {
     this.hasManyCons[field] = type;
   };
@@ -30,143 +112,23 @@ class Model {
   };
 
   modelClass = getModelClass(this.hasOneCons, this.hasManyCons);
-
-  create = params => {
-    const primaryFields = Object.values(pick(params, this.primary));
-    const selection = this.index.select(primaryFields);
-    const _id = [this.name, ...primaryFields];
-    const res = selection.set(
-      new this.modelClass({
-        _id,
-        model: this.name,
-        ...params
-      })
-    );
-    if (!selection.exists) console.log("created", this.name, primaryFields);
-    if (!selection.exists) Sync.saveEntity(res.toSave());
-    return res;
-  };
-
-  get = (params = [], fallback) => {
-    const primaryValues = this.primary.map(key => params[key]);
-    const primaryFields = without(primaryValues, undefined);
-    return this.index.select(primaryFields).get(fallback);
-  };
 }
 
-export class Field extends Model {
+export class Field extends BareModel {
   constructor(name, primary) {
     super(name, primary);
     this.primary = ["origin", ...primary];
   }
-  modelClass = function Entity(params) {
-    this.dateCreated = Date.now();
-    //set normal param fields
-    Object.entries(params).forEach(([n, v]) => {
-      this[n] = v;
-    });
-    this.toSave = () => {
-      return {
-        ...params,
-        origin: buildId(params.origin._id),
-        _id: buildId(params._id)
-      };
-    };
-  };
 }
 
-export class Connection extends Model {
-  modelClass = function Entity(params) {
-    this.dateCreated = Date.now();
-    //set normal param fields
-    Object.entries(params).forEach(([n, v]) => {
-      this[n] = v;
-    });
-    this.toSave = () => {
-      return {
-        ...params,
-        origin: buildId(params._id),
-        target: params.target && buildId(params._id),
-        _id: buildId(params._id)
-      };
-    };
-  };
+export class Connection extends BareModel {
+  constructor(name, primary) {
+    super(name, primary);
+  }
 }
 
-const HasOne = new Connection("Con-HasOne", ["field", "origin"]);
-const HasMany = new Connection("Con-HasMany", ["field", "origin", "target"]);
-
-export function getModelClass(hasOneCons, hasManyCons) {
-  return function Entity(params) {
-    this.dateCreated = Date.now();
-    //set normal param fields
-    Object.entries(params).forEach(([n, v]) => {
-      this[n] = v;
-    });
-    this.toSave = () => {
-      return {
-        ...params,
-        _id: buildId(params._id)
-      };
-    };
-
-    //set dynamic fields
-    this.set = {};
-    this.add = {};
-    Object.entries(hasOneCons).forEach(([field, model]) => {
-      Object.defineProperty(this, field, {
-        get: function() {
-          return HasOne.get({ field, origin: this }, {}).target;
-        }
-      });
-      this.set[field] = args => {
-        const extra = model instanceof Field ? { origin: this } : {};
-        const target = model.create({ ...extra, ...args });
-        const con = HasOne.create(
-          { field, origin: this._id, target: target._id },
-          {}
-        );
-        Object.defineProperty(con, "origin", {
-          get: function() {
-            return this;
-          }
-        });
-        Object.defineProperty(con, "target", {
-          get: function() {
-            return target;
-          }
-        });
-        return con.target;
-      };
-    });
-    Object.entries(hasManyCons).forEach(([field, model]) => {
-      Object.defineProperty(this, field, {
-        get: function() {
-          return HasMany.get({ field, origin: this }, []).map(c => c.target);
-        }
-      });
-      this.add[field] = args => {
-        const extra = model instanceof Field ? { origin: this } : {};
-        const target = model.create({ ...extra, ...args });
-        const con = HasMany.create(
-          { field, origin: this._id, target: target._id },
-          {}
-        );
-        Object.defineProperty(con, "origin", {
-          get: function() {
-            return this;
-          }
-        });
-        Object.defineProperty(con, "target", {
-          get: function() {
-            return target;
-          }
-        });
-        return con.target;
-      };
-    });
-  };
-}
+const HasOne = new Connection("HasOne", ["field", "origin"]);
+const HasMany = new Connection("HasMany", ["field", "origin", "target"]);
 
 Sync.retrieveFromDB(allModels);
 
