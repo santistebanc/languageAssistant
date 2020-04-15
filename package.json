@@ -43,7 +43,8 @@
     "request": "^2.88.2",
     "rxjs": "^6.5.4",
     "short-uuid": "^3.1.1",
-    "user-agents": "^1.0.559"
+    "user-agents": "^1.0.559",
+    "worker-pouch": "^2.1.0"
   },
   "devDependencies": {
     "@babel/cli": "7.2.0",
