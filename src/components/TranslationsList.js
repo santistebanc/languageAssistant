@@ -55,11 +55,12 @@ const styles = StyleSheet.create({
   },
   item: {
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "flex-start",
   },
   flag: {
     marginBottom: 4,
     marginRight: 4,
+    marginTop: 6
   },
   result: {
     fontSize: 16,

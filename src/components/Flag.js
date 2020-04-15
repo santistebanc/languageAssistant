@@ -34,5 +34,8 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333333',
+    borderWidth: 1,
+    height: '100%',
+    width: '100%'
   },
 });

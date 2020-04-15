@@ -11,7 +11,7 @@ const App = observer(({ search }) => {
 
   const onSubmit = () => {
     if (inputValue) {
-      setInputValue("");
+      // setInputValue("");
       search.query = inputValue;
     }
   };
