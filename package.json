@@ -22,7 +22,7 @@
     "events": "^3.1.0",
     "express": "^4.17.1",
     "google-translate-api-browser": "^1.1.71",
-    "lodash": "^4.17.15",
+    "lodash": "^4.17.21",
     "mobx": "^5.15.4",
     "mobx-react": "^6.1.8",
     "mobx-utils": "^5.5.5",
